@@ -704,7 +704,7 @@
   const HEAT_MS = 60 * 60 * 1000;
 
   let batteries = {};
-  let history = [];
+  let heatLog = [];
   let currentFilter = 'all';
   let currentPage = 'tracker';
   let selectedId = null;
@@ -720,15 +720,15 @@
       if (!batteries[id(i)]) batteries[id(i)] = { status: 'idle', startMs: null };
     }
     const savedH = localStorage.getItem('ma6328-history');
-    if (savedH) { try { history = JSON.parse(savedH); } catch(e) {} }
+    if (savedH) { try { heatLog = JSON.parse(savedH); } catch(e) {} }
   }
 
   function save() { localStorage.setItem('ma6328-batteries', JSON.stringify(batteries)); }
-  function saveHistory() { localStorage.setItem('ma6328-history', JSON.stringify(history)); }
+  function saveHistory() { localStorage.setItem('ma6328-history', JSON.stringify(heatLog)); }
 
   function lastHeated(bid) {
-    for (let i = history.length - 1; i >= 0; i--) {
-      if (history[i].bid === bid) return history[i];
+    for (let i = heatLog.length - 1; i >= 0; i--) {
+      if (heatLog[i].bid === bid) return heatLog[i];
     }
     return null;
   }
@@ -958,7 +958,7 @@
     const b = batteries[selectedId];
     const endMs = Date.now();
     const wasOverdue = effectiveStatus(selectedId) === 'overdue';
-    history.push({ bid: selectedId, startMs: b.startMs, endMs, overdue: wasOverdue });
+    heatLog.push({ bid: selectedId, startMs: b.startMs, endMs, overdue: wasOverdue });
     saveHistory();
     batteries[selectedId] = { status:'idle', startMs:null };
     toastFired[selectedId] = false;
@@ -1027,7 +1027,7 @@
   function buildHistory() {
     const page = document.getElementById('page-history');
 
-    if (history.length === 0) {
+    if (heatLog.length === 0) {
       page.innerHTML = `
         <div class="history-empty">
           <div class="big-icon">🕐</div>
@@ -1038,14 +1038,14 @@
 
     // Group by date, newest first
     const groups = {};
-    [...history].reverse().forEach(entry => {
+    [...heatLog].reverse().forEach(entry => {
       const dateKey = fmtDate(entry.endMs);
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(entry);
     });
 
     let html = `<div class="history-toolbar">
-      <span class="history-count">${history.length} session${history.length!==1?'s':''}</span>
+      <span class="history-count">${heatLog.length} session${heatLog.length!==1?'s':''}</span>
       <button class="btn-clear" onclick="clearHistory()">Clear All</button>
     </div>`;
 
@@ -1076,7 +1076,7 @@
 
   function clearHistory() {
     if (!confirm('Clear all heating history?')) return;
-    history = [];
+    heatLog = [];
     saveHistory();
     buildHistory();
   }
