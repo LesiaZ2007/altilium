@@ -154,15 +154,15 @@
     .grid-container {
       padding: 12px 14px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-      gap: 9px;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
     }
 
     .battery-card {
       background: var(--surface);
       border: 1.5px solid var(--border-dim);
-      border-radius: 12px;
-      padding: 13px 12px 11px;
+      border-radius: 14px;
+      padding: 16px 14px 14px;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s, transform 0.1s;
       user-select: none;
@@ -190,29 +190,29 @@
 
     .battery-icon {
       position: absolute;
-      top: 9px;
-      right: 10px;
-      font-size: 16px;
+      top: 12px;
+      right: 12px;
+      font-size: 20px;
       opacity: 0.55;
     }
 
     .battery-label {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-muted);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin-bottom: 1px;
+      margin-bottom: 2px;
     }
 
     .battery-num {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 22px;
+      font-size: 32px;
       font-weight: 800;
       color: var(--cream);
       line-height: 1;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       letter-spacing: 0.5px;
     }
     .battery-card.state-heating .battery-num { color: var(--gold); }
@@ -220,7 +220,7 @@
 
     .battery-status {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -231,7 +231,7 @@
     .battery-card.state-overdue .battery-status { color: var(--red); }
 
     .battery-timer {
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: var(--text);
@@ -239,7 +239,7 @@
     .battery-card.state-idle .battery-timer {
       color: var(--text-muted);
       font-weight: 400;
-      font-size: 12px;
+      font-size: 13px;
     }
 
     .battery-last {
@@ -769,28 +769,58 @@
     `;
   }
 
+  function sortedBatteryIds() {
+    const ids = [];
+    for (let i=1;i<=TOTAL;i++) ids.push(id(i));
+
+    ids.sort((a, b) => {
+      const sa = effectiveStatus(a), sb = effectiveStatus(b);
+      const heatingA = sa==='heating'||sa==='overdue';
+      const heatingB = sb==='heating'||sb==='overdue';
+
+      // 1. Heating batteries first; overdue before heating (most urgent)
+      if (heatingA !== heatingB) return heatingA ? -1 : 1;
+      if (heatingA && heatingB) {
+        if (sa==='overdue' && sb!=='overdue') return -1;
+        if (sb==='overdue' && sa!=='overdue') return 1;
+        // both same sub-state: least time remaining first
+        return batteries[a].startMs - batteries[b].startMs;
+      }
+
+      // 2. Both idle: sort by last heated time ascending (longest ago first; never = treat as 0)
+      const lastA = lastHeated(a), lastB = lastHeated(b);
+      const timeA = lastA ? lastA.endMs : 0;
+      const timeB = lastB ? lastB.endMs : 0;
+      if (timeA !== timeB) return timeA - timeB;
+
+      // 3. Battery number order
+      return parseInt(a.split('-')[1]) - parseInt(b.split('-')[1]);
+    });
+
+    return ids;
+  }
+
   function buildGrid() {
     const grid = document.getElementById('grid');
-    const existing = {};
-    grid.querySelectorAll('.battery-card').forEach(el => existing[el.dataset.id] = el);
+    const sorted = sortedBatteryIds();
 
-    for (let i=1;i<=TOTAL;i++) {
-      const bid = id(i);
+    // Re-order DOM to match sort, creating cards as needed
+    sorted.forEach((bid, idx) => {
       const b = batteries[bid];
       const status = effectiveStatus(bid);
       const show = currentFilter==='all'
-        || (currentFilter==='heating' && status==='heating')
+        || (currentFilter==='heating' && (status==='heating'||status==='overdue'))
         || (currentFilter==='ready'   && status==='overdue')
         || (currentFilter==='idle'    && status==='idle');
 
-      let card = existing[bid];
+      let card = grid.querySelector(`.battery-card[data-id="${bid}"]`);
       if (!card) {
         card = document.createElement('div');
         card.className = 'battery-card';
         card.dataset.id = bid;
         card.addEventListener('click', () => openModal(bid));
-        grid.appendChild(card);
       }
+      grid.appendChild(card); // append re-orders naturally to match sorted order
 
       card.style.display = show ? '' : 'none';
       card.className = `battery-card state-${status==='overdue'?'overdue':status}`;
