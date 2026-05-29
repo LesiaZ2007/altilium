@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -47,7 +47,7 @@
       overflow-x: hidden;
     }
 
-    /* ── Header ── */
+    /* â”€â”€ Header â”€â”€ */
     header {
       background: var(--surface);
       border-bottom: 2px solid var(--gold);
@@ -85,7 +85,7 @@
       letter-spacing: 2px;
     }
 
-    /* ── Stats bar ── */
+    /* â”€â”€ Stats bar â”€â”€ */
     .stats-bar {
       display: flex;
       gap: 8px;
@@ -118,7 +118,7 @@
     .dot-heating { background: var(--gold); }
     .dot-ready   { background: var(--red); }
 
-    /* ── Filter row ── */
+    /* â”€â”€ Filter row â”€â”€ */
     .filter-row {
       display: flex;
       gap: 7px;
@@ -150,7 +150,7 @@
       color: var(--navy);
     }
 
-    /* ── Battery grid ── */
+    /* â”€â”€ Battery grid â”€â”€ */
     .grid-container {
       padding: 12px 14px;
       display: grid;
@@ -257,7 +257,7 @@
       padding: 2px 6px;
     }
 
-    /* ── Modal ── */
+    /* â”€â”€ Modal â”€â”€ */
     .modal-backdrop {
       display: none;
       position: fixed;
@@ -319,7 +319,7 @@
     .modal-info-row .info-text { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     .modal-info-row .info-val  { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; margin-top: 1px; color: var(--cream); }
 
-    /* ── Buttons ── */
+    /* â”€â”€ Buttons â”€â”€ */
     .btn-row {
       display: flex;
       flex-direction: column;
@@ -359,7 +359,7 @@
       border: 1.5px solid var(--red);
     }
 
-    /* ── Time preset ── */
+    /* â”€â”€ Time preset â”€â”€ */
     .time-input-section { margin-bottom: 18px; }
 
     .time-input-label {
@@ -419,7 +419,7 @@
     }
     #custom-minutes:focus { border-color: var(--gold); }
 
-    /* ── Toast ── */
+    /* â”€â”€ Toast â”€â”€ */
     .toast-container {
       position: fixed;
       top: 76px;
@@ -456,7 +456,7 @@
       to   { transform: translateY(0);     opacity: 1; }
     }
 
-    /* ── Tab bar ── */
+    /* â”€â”€ Tab bar â”€â”€ */
     .tab-bar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -490,7 +490,7 @@
 
     body { padding-bottom: 62px; }
 
-    /* ── History page ── */
+    /* â”€â”€ History page â”€â”€ */
     #page-history { display: none; }
     #page-history.active { display: block; }
     #page-tracker.active { display: block; }
@@ -636,7 +636,7 @@
   </svg>
   <div class="header-text">
     <h1>Battery Tracker</h1>
-    <span>Mechanical Advantage · FRC 6328</span>
+    <span>Mechanical Advantage Â· FRC 6328</span>
   </div>
 </header>
 
@@ -704,7 +704,7 @@
   const HEAT_MS = 60 * 60 * 1000;
 
   let batteries = {};
-  let history = [];
+  let heatLog = [];
   let currentFilter = 'all';
   let currentPage = 'tracker';
   let selectedId = null;
@@ -720,15 +720,15 @@
       if (!batteries[id(i)]) batteries[id(i)] = { status: 'idle', startMs: null };
     }
     const savedH = localStorage.getItem('ma6328-history');
-    if (savedH) { try { history = JSON.parse(savedH); } catch(e) {} }
+    if (savedH) { try { heatLog = JSON.parse(savedH); } catch(e) {} }
   }
 
   function save() { localStorage.setItem('ma6328-batteries', JSON.stringify(batteries)); }
   function saveHistory() { localStorage.setItem('ma6328-history', JSON.stringify(history)); }
 
   function lastHeated(bid) {
-    for (let i = history.length - 1; i >= 0; i--) {
-      if (history[i].bid === bid) return history[i];
+    for (let i = heatLog.length - 1; i >= 0; i--) {
+      if (heatLog[i].bid === bid) return heatLog[i];
     }
     return null;
   }
@@ -827,13 +827,13 @@
 
       let statusText, timerText, icon;
       if (status==='idle') {
-        statusText='Idle'; timerText='Tap to heat'; icon='🔋';
+        statusText='Idle'; timerText='Tap to heat'; icon='ðŸ”‹';
       } else if (status==='heating') {
         const rem = HEAT_MS - (Date.now() - b.startMs);
-        statusText='Heating'; timerText=fmtCountdown(rem)+' left'; icon='🔥';
+        statusText='Heating'; timerText=fmtCountdown(rem)+' left'; icon='ðŸ”¥';
       } else {
         const over = (Date.now()-b.startMs)-HEAT_MS;
-        statusText='REMOVE NOW'; timerText=fmtElapsed(over)+' overdue'; icon='⚠️';
+        statusText='REMOVE NOW'; timerText=fmtElapsed(over)+' overdue'; icon='âš ï¸';
       }
 
       const last = lastHeated(bid);
@@ -860,7 +860,7 @@
         const status = effectiveStatus(bid);
         if (status==='overdue' && !toastFired[bid]) {
           toastFired[bid] = true;
-          showToast(`⚠️ Battery ${bid} is ready — remove from heat!`);
+          showToast(`âš ï¸ Battery ${bid} is ready â€” remove from heat!`);
         }
         if (status==='heating') toastFired[bid] = false;
       }
@@ -878,7 +878,7 @@
 
   function tick() { buildStats(); buildGrid(); checkNotifications(); }
 
-  // ── Modal ──
+  // â”€â”€ Modal â”€â”€
   function openModal(bid) {
     selectedId = bid;
     selectedMinsAgo = 0;
@@ -896,33 +896,33 @@
       timeSec.style.display='block';
       resetTimePresets();
       actions.innerHTML=`
-        <button class="btn btn-gold" onclick="startHeating()">🔥 Start Heating</button>
+        <button class="btn btn-gold" onclick="startHeating()">ðŸ”¥ Start Heating</button>
         <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       `;
     } else if (status==='heating') {
       const rem = HEAT_MS-(Date.now()-b.startMs);
       const elapsed = Date.now()-b.startMs;
-      document.getElementById('modal-subtitle').textContent = 'Currently heating — check the timer.';
+      document.getElementById('modal-subtitle').textContent = 'Currently heating â€” check the timer.';
       infoSec.innerHTML=`
-        <div class="modal-info-row"><span class="info-icon">🕐</span><div><div class="info-text">Started at</div><div class="info-val">${fmtTime(b.startMs)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">⏱️</span><div><div class="info-text">Time elapsed</div><div class="info-val" id="modal-elapsed">${fmtElapsed(elapsed)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">✅</span><div><div class="info-text">Remove at</div><div class="info-val">${fmtTime(b.startMs+HEAT_MS)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">⏳</span><div><div class="info-text">Time remaining</div><div class="info-val" id="modal-remaining">${fmtCountdown(rem)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">ðŸ•</span><div><div class="info-text">Started at</div><div class="info-val">${fmtTime(b.startMs)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">â±ï¸</span><div><div class="info-text">Time elapsed</div><div class="info-val" id="modal-elapsed">${fmtElapsed(elapsed)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">âœ…</span><div><div class="info-text">Remove at</div><div class="info-val">${fmtTime(b.startMs+HEAT_MS)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">â³</span><div><div class="info-text">Time remaining</div><div class="info-val" id="modal-remaining">${fmtCountdown(rem)}</div></div></div>
       `;
       actions.innerHTML=`
-        <button class="btn btn-red" onclick="removeFromHeat()">✅ Mark as Removed</button>
+        <button class="btn btn-red" onclick="removeFromHeat()">âœ… Mark as Removed</button>
         <button class="btn btn-ghost" onclick="closeModal()">Close</button>
       `;
     } else {
       const over = (Date.now()-b.startMs)-HEAT_MS;
       document.getElementById('modal-subtitle').textContent = 'This battery should have been removed already!';
       infoSec.innerHTML=`
-        <div class="modal-info-row"><span class="info-icon">🕐</span><div><div class="info-text">Started at</div><div class="info-val">${fmtTime(b.startMs)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">⚠️</span><div><div class="info-text">Should have removed at</div><div class="info-val">${fmtTime(b.startMs+HEAT_MS)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">⏰</span><div><div class="info-text">Overdue by</div><div class="info-val" id="modal-overdue-by" style="color:var(--red)">${fmtElapsed(over)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">ðŸ•</span><div><div class="info-text">Started at</div><div class="info-val">${fmtTime(b.startMs)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">âš ï¸</span><div><div class="info-text">Should have removed at</div><div class="info-val">${fmtTime(b.startMs+HEAT_MS)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">â°</span><div><div class="info-text">Overdue by</div><div class="info-val" id="modal-overdue-by" style="color:var(--red)">${fmtElapsed(over)}</div></div></div>
       `;
       actions.innerHTML=`
-        <button class="btn btn-red" onclick="removeFromHeat()">✅ Mark as Removed</button>
+        <button class="btn btn-red" onclick="removeFromHeat()">âœ… Mark as Removed</button>
         <button class="btn btn-ghost" onclick="closeModal()">Close</button>
       `;
     }
@@ -958,7 +958,7 @@
     const b = batteries[selectedId];
     const endMs = Date.now();
     const wasOverdue = effectiveStatus(selectedId) === 'overdue';
-    history.push({ bid: selectedId, startMs: b.startMs, endMs, overdue: wasOverdue });
+    heatLog.push({ bid: selectedId, startMs: b.startMs, endMs, overdue: wasOverdue });
     saveHistory();
     batteries[selectedId] = { status:'idle', startMs:null };
     toastFired[selectedId] = false;
@@ -1004,7 +1004,7 @@
     if (ov) ov.textContent=fmtElapsed(Math.abs(rem));
   }, 1000);
 
-  // ── Tab navigation ──
+  // â”€â”€ Tab navigation â”€â”€
   function switchTab(page) {
     currentPage = page;
     document.getElementById('page-tracker').classList.toggle('active', page==='tracker');
@@ -1014,7 +1014,7 @@
     if (page==='history') buildHistory();
   }
 
-  // ── History page ──
+  // â”€â”€ History page â”€â”€
   function fmtDate(ms) {
     return new Date(ms).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' });
   }
@@ -1027,10 +1027,10 @@
   function buildHistory() {
     const page = document.getElementById('page-history');
 
-    if (history.length === 0) {
+    if (heatLog.length === 0) {
       page.innerHTML = `
         <div class="history-empty">
-          <div class="big-icon">🕐</div>
+          <div class="big-icon">ðŸ•</div>
           <p>No heating sessions recorded yet.<br>Remove a battery from heat to log it here.</p>
         </div>`;
       return;
@@ -1045,7 +1045,7 @@
     });
 
     let html = `<div class="history-toolbar">
-      <span class="history-count">${history.length} session${history.length!==1?'s':''}</span>
+      <span class="history-count">${heatLog.length} session${heatLog.length!==1?'s':''}</span>
       <button class="btn-clear" onclick="clearHistory()">Clear All</button>
     </div>`;
 
@@ -1060,7 +1060,7 @@
           <div class="history-entry${e.overdue?' was-overdue':''}">
             <div class="history-badge">${e.bid.split('-')[1]}</div>
             <div class="history-main">
-              <div class="history-times">${fmtTime(e.startMs)} → ${fmtTime(e.endMs)}</div>
+              <div class="history-times">${fmtTime(e.startMs)} â†’ ${fmtTime(e.endMs)}</div>
               <div class="history-meta">
                 <span class="history-duration">Duration: ${dur}</span>
                 ${tag}
@@ -1076,7 +1076,7 @@
 
   function clearHistory() {
     if (!confirm('Clear all heating history?')) return;
-    history = [];
+    heatLog = [];
     saveHistory();
     buildHistory();
   }
@@ -1087,3 +1087,5 @@
 </script>
 </body>
 </html>
+
+
