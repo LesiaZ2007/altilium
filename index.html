@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>6328 Battery Tracker</title>
+  <style>
+    :root {
+      --orange: #F97316;
+      --orange-dark: #C2410C;
+      --orange-glow: rgba(249, 115, 22, 0.3);
+      --bg: #0A0A0A;
+      --surface: #141414;
+      --surface2: #1E1E1E;
+      --border: #2A2A2A;
+      --text: #F5F5F5;
+      --text-muted: #888;
+      --green: #22C55E;
+      --green-dim: rgba(34, 197, 94, 0.15);
+      --red: #EF4444;
+      --red-dim: rgba(239, 68, 68, 0.15);
+      --yellow: #EAB308;
+      --yellow-dim: rgba(234, 179, 8, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--orange);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      background: var(--orange);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 15px;
+      color: #000;
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+    }
+
+    .header-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .header-text span {
+      font-size: 12px;
+      color: var(--orange);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .stats-bar::-webkit-scrollbar { display: none; }
+
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 12px;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .stat-chip .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .dot-idle { background: var(--text-muted); }
+    .dot-heating { background: var(--yellow); }
+    .dot-ready { background: var(--green); }
+    .dot-overdue { background: var(--red); }
+
+    .grid-container {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .battery-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 12px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .battery-card:active { transform: scale(0.96); }
+
+    .battery-card.state-idle:hover { border-color: var(--orange); }
+
+    .battery-card.state-heating {
+      border-color: var(--yellow);
+      background: var(--yellow-dim);
+    }
+
+    .battery-card.state-ready {
+      border-color: var(--green);
+      background: var(--green-dim);
+    }
+
+    .battery-card.state-overdue {
+      border-color: var(--red);
+      background: var(--red-dim);
+      animation: pulse-red 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      50% { box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.35); }
+    }
+
+    .battery-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .battery-num {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .battery-card.state-heating .battery-num { color: var(--yellow); }
+    .battery-card.state-ready .battery-num { color: var(--green); }
+    .battery-card.state-overdue .battery-num { color: var(--red); }
+
+    .battery-status {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .battery-card.state-heating .battery-status { color: var(--yellow); }
+    .battery-card.state-ready .battery-status { color: var(--green); }
+    .battery-card.state-overdue .battery-status { color: var(--red); }
+
+    .battery-timer {
+      font-size: 14px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+
+    .battery-card.state-idle .battery-timer { color: var(--text-muted); font-weight: 400; font-size: 12px; }
+
+    .battery-icon {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 18px;
+      opacity: 0.6;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 24px 36px;
+      width: 100%;
+      max-width: 500px;
+      animation: slide-up 0.22s ease-out;
+    }
+
+    @keyframes slide-up {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .modal-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .modal-info-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .modal-info-row .info-icon { font-size: 20px; }
+
+    .modal-info-row .info-text { font-size: 13px; color: var(--text-muted); }
+    .modal-info-row .info-val { font-size: 15px; font-weight: 700; margin-top: 1px; }
+
+    .btn-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      transition: opacity 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-orange {
+      background: var(--orange);
+      color: #000;
+    }
+
+    .btn-orange:hover { opacity: 0.9; }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1.5px solid var(--border);
+    }
+
+    .btn-red {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1.5px solid var(--red);
+    }
+
+    .btn-green {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1.5px solid var(--green);
+    }
+
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 0 16px;
+      margin-top: 8px;
+      margin-bottom: 6px;
+    }
+
+    /* Notification toast */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      width: calc(100% - 32px);
+      max-width: 420px;
+    }
+
+    .toast {
+      background: var(--surface);
+      border: 1.5px solid var(--red);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: toast-in 0.25s ease-out;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+
+    .toast-icon { font-size: 20px; }
+
+    .toast-text { font-size: 14px; font-weight: 600; }
+
+    @keyframes toast-in {
+      from { transform: translateY(-16px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .big-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 15px; }
+
+    /* Time input modal */
+    .time-input-section {
+      margin-bottom: 20px;
+    }
+
+    .time-input-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .time-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .time-btn {
+      flex: 1;
+      padding: 14px 8px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+      -webkit-tap-highlight-color: transparent;
+      text-align: center;
+    }
+
+    .time-btn.selected {
+      background: var(--orange-glow);
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .time-btn:active { opacity: 0.7; }
+
+    #custom-minutes-wrap {
+      margin-top: 10px;
+      display: none;
+    }
+
+    #custom-minutes-wrap.visible { display: block; }
+
+    #custom-minutes {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    #custom-minutes:focus { border-color: var(--orange); }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .filter-row::-webkit-scrollbar { display: none; }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .filter-btn.active {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">6328</div>
+  <div class="header-text">
+    <h1>Battery Tracker</h1>
+    <span>Mechanical Advantage</span>
+  </div>
+</header>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<div class="filter-row" id="filter-row">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="heating">Heating</button>
+  <button class="filter-btn" data-filter="ready">Ready to Remove</button>
+  <button class="filter-btn" data-filter="idle">Idle</button>
+</div>
+
+<div class="grid-container" id="grid"></div>
+
+<!-- Battery Action Modal -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-subtitle" id="modal-subtitle"></div>
+
+    <div id="modal-info-section"></div>
+
+    <div id="modal-time-section" class="time-input-section" style="display:none">
+      <div class="time-input-label">How long ago did heating start?</div>
+      <div class="time-input-row" id="time-preset-row">
+        <button class="time-btn selected" data-minutes="0">Just now</button>
+        <button class="time-btn" data-minutes="15">15 min</button>
+        <button class="time-btn" data-minutes="30">30 min</button>
+        <button class="time-btn" data-minutes="45">45 min</button>
+        <button class="time-btn" data-minutes="custom">Other</button>
+      </div>
+      <div id="custom-minutes-wrap">
+        <input type="number" id="custom-minutes" min="0" max="59" placeholder="Minutes ago" inputmode="numeric" />
+      </div>
+    </div>
+
+    <div class="btn-row" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+  const TOTAL = 30;
+  const HEAT_DURATION_MS = 60 * 60 * 1000; // 1 hour
+
+  // State: { [id]: { status: 'idle'|'heating'|'done', startMs: number|null } }
+  let batteries = {};
+  let currentFilter = 'all';
+  let selectedBatteryId = null;
+  let selectedMinutesAgo = 0;
+  let tickInterval = null;
+  let toastTimers = {};
+
+  function batteryId(n) {
+    return '2026-' + String(n).padStart(3, '0');
+  }
+
+  function initState() {
+    const saved = localStorage.getItem('battery-state-6328');
+    if (saved) {
+      try { batteries = JSON.parse(saved); } catch(e) { batteries = {}; }
+    }
+    for (let i = 1; i <= TOTAL; i++) {
+      const id = batteryId(i);
+      if (!batteries[id]) batteries[id] = { status: 'idle', startMs: null };
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem('battery-state-6328', JSON.stringify(batteries));
+  }
+
+  function getEffectiveStatus(id) {
+    const b = batteries[id];
+    if (b.status !== 'heating') return b.status;
+    const elapsed = Date.now() - b.startMs;
+    if (elapsed >= HEAT_DURATION_MS) return 'overdue';
+    return 'heating';
+  }
+
+  function formatCountdown(ms) {
+    const total = Math.max(0, ms);
+    const m = Math.floor(total / 60000);
+    const s = Math.floor((total % 60000) / 1000);
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function formatElapsed(ms) {
+    const total = Math.abs(ms);
+    const m = Math.floor(total / 60000);
+    const s = Math.floor((total % 60000) / 1000);
+    if (m >= 60) {
+      const h = Math.floor(m / 60), rm = m % 60;
+      return `${h}h ${rm}m`;
+    }
+    return `${m}m ${s}s`;
+  }
+
+  function formatTime(ms) {
+    const d = new Date(ms);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function buildStats() {
+    let idle = 0, heating = 0, ready = 0, overdue = 0;
+    for (let i = 1; i <= TOTAL; i++) {
+      const status = getEffectiveStatus(batteryId(i));
+      if (status === 'idle') idle++;
+      else if (status === 'heating') heating++;
+      else if (status === 'overdue') overdue++;
+    }
+    ready = overdue;
+
+    const bar = document.getElementById('stats-bar');
+    bar.innerHTML = `
+      <div class="stat-chip"><div class="dot dot-idle"></div>${idle} Idle</div>
+      <div class="stat-chip"><div class="dot dot-heating"></div>${heating} Heating</div>
+      <div class="stat-chip"><div class="dot dot-ready"></div>${ready} Ready to Remove</div>
+    `;
+  }
+
+  function buildGrid() {
+    const grid = document.getElementById('grid');
+    const existing = {};
+    grid.querySelectorAll('.battery-card').forEach(el => { existing[el.dataset.id] = el; });
+
+    for (let i = 1; i <= TOTAL; i++) {
+      const id = batteryId(i);
+      const b = batteries[id];
+      const status = getEffectiveStatus(id);
+
+      // Filter
+      let show = true;
+      if (currentFilter === 'heating' && status !== 'heating') show = false;
+      if (currentFilter === 'ready' && status !== 'overdue') show = false;
+      if (currentFilter === 'idle' && status !== 'idle') show = false;
+
+      let card = existing[id];
+      if (!card) {
+        card = document.createElement('div');
+        card.className = 'battery-card';
+        card.dataset.id = id;
+        card.addEventListener('click', () => openModal(id));
+        grid.appendChild(card);
+      }
+
+      card.style.display = show ? '' : 'none';
+      card.className = `battery-card state-${status === 'overdue' ? 'overdue' : status}`;
+      card.dataset.id = id;
+
+      let statusText = '', timerText = '', icon = '🔋';
+      if (status === 'idle') {
+        statusText = 'Idle';
+        timerText = 'Tap to heat';
+        icon = '🔋';
+      } else if (status === 'heating') {
+        const remaining = HEAT_DURATION_MS - (Date.now() - b.startMs);
+        statusText = 'Heating';
+        timerText = formatCountdown(remaining) + ' left';
+        icon = '🔥';
+      } else if (status === 'overdue') {
+        const over = (Date.now() - b.startMs) - HEAT_DURATION_MS;
+        statusText = 'REMOVE NOW';
+        timerText = formatElapsed(over) + ' overdue';
+        icon = '⚠️';
+      }
+
+      card.innerHTML = `
+        <div class="battery-icon">${icon}</div>
+        <div class="battery-label">Battery</div>
+        <div class="battery-num">${id.split('-')[1]}</div>
+        <div class="battery-status">${statusText}</div>
+        <div class="battery-timer">${timerText}</div>
+      `;
+    }
+  }
+
+  function checkOverdueNotifications() {
+    for (let i = 1; i <= TOTAL; i++) {
+      const id = batteryId(i);
+      const b = batteries[id];
+      if (b.status === 'heating') {
+        const status = getEffectiveStatus(id);
+        if (status === 'overdue' && !toastTimers[id + '_notified']) {
+          toastTimers[id + '_notified'] = true;
+          showToast(`⚠️ Battery ${id} is ready — remove from heat!`);
+        }
+        if (status === 'heating') {
+          toastTimers[id + '_notified'] = false;
+        }
+      }
+    }
+  }
+
+  function showToast(msg) {
+    const tc = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = `<span class="toast-text">${msg}</span>`;
+    tc.appendChild(t);
+    setTimeout(() => { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 5000);
+  }
+
+  function tick() {
+    buildStats();
+    buildGrid();
+    checkOverdueNotifications();
+  }
+
+  // ---- Modal ----
+
+  function openModal(id) {
+    selectedBatteryId = id;
+    selectedMinutesAgo = 0;
+    const b = batteries[id];
+    const status = getEffectiveStatus(id);
+
+    document.getElementById('modal-title').textContent = `Battery ${id}`;
+
+    const infoSection = document.getElementById('modal-info-section');
+    const timeSection = document.getElementById('modal-time-section');
+    const actions = document.getElementById('modal-actions');
+
+    infoSection.innerHTML = '';
+    timeSection.style.display = 'none';
+    actions.innerHTML = '';
+
+    if (status === 'idle') {
+      document.getElementById('modal-subtitle').textContent = 'This battery is not currently heating.';
+      timeSection.style.display = 'block';
+      resetTimePresets();
+
+      actions.innerHTML = `
+        <button class="btn btn-orange" onclick="startHeating()">🔥 Start Heating</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      `;
+    } else if (status === 'heating') {
+      const remaining = HEAT_DURATION_MS - (Date.now() - b.startMs);
+      const elapsed = Date.now() - b.startMs;
+      document.getElementById('modal-subtitle').textContent = 'Currently heating — check the timer below.';
+
+      infoSection.innerHTML = `
+        <div class="modal-info-row">
+          <span class="info-icon">🕐</span>
+          <div><div class="info-text">Started at</div><div class="info-val">${formatTime(b.startMs)}</div></div>
+        </div>
+        <div class="modal-info-row">
+          <span class="info-icon">⏱️</span>
+          <div><div class="info-text">Time elapsed</div><div class="info-val" id="modal-elapsed">${formatElapsed(elapsed)}</div></div>
+        </div>
+        <div class="modal-info-row">
+          <span class="info-icon">✅</span>
+          <div><div class="info-text">Remove at</div><div class="info-val">${formatTime(b.startMs + HEAT_DURATION_MS)}</div></div>
+        </div>
+        <div class="modal-info-row">
+          <span class="info-icon">⏳</span>
+          <div><div class="info-text">Time remaining</div><div class="info-val" id="modal-remaining">${formatCountdown(remaining)}</div></div>
+        </div>
+      `;
+
+      actions.innerHTML = `
+        <button class="btn btn-red" onclick="removeFromHeat()">✅ Mark as Removed</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      `;
+    } else if (status === 'overdue') {
+      const over = (Date.now() - b.startMs) - HEAT_DURATION_MS;
+      document.getElementById('modal-subtitle').textContent = 'This battery should have been removed already!';
+
+      infoSection.innerHTML = `
+        <div class="modal-info-row">
+          <span class="info-icon">🕐</span>
+          <div><div class="info-text">Started at</div><div class="info-val">${formatTime(b.startMs)}</div></div>
+        </div>
+        <div class="modal-info-row">
+          <span class="info-icon">⚠️</span>
+          <div><div class="info-text">Should have removed at</div><div class="info-val">${formatTime(b.startMs + HEAT_DURATION_MS)}</div></div>
+        </div>
+        <div class="modal-info-row">
+          <span class="info-icon">⏰</span>
+          <div><div class="info-text">Overdue by</div><div class="info-val" id="modal-overdue-by" style="color:var(--red)">${formatElapsed(over)}</div></div>
+        </div>
+      `;
+
+      actions.innerHTML = `
+        <button class="btn btn-red" onclick="removeFromHeat()">✅ Mark as Removed</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      `;
+    }
+
+    document.getElementById('modal-backdrop').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-backdrop').classList.remove('open');
+    selectedBatteryId = null;
+  }
+
+  function resetTimePresets() {
+    selectedMinutesAgo = 0;
+    document.querySelectorAll('.time-btn').forEach(b => {
+      b.classList.toggle('selected', b.dataset.minutes === '0');
+    });
+    document.getElementById('custom-minutes-wrap').classList.remove('visible');
+    document.getElementById('custom-minutes').value = '';
+  }
+
+  function startHeating() {
+    if (!selectedBatteryId) return;
+    let ago = selectedMinutesAgo;
+    const customWrap = document.getElementById('custom-minutes-wrap');
+    if (customWrap.classList.contains('visible')) {
+      const v = parseInt(document.getElementById('custom-minutes').value, 10);
+      ago = isNaN(v) ? 0 : Math.min(v, 59);
+    }
+    const startMs = Date.now() - ago * 60 * 1000;
+    batteries[selectedBatteryId] = { status: 'heating', startMs };
+    saveState();
+    closeModal();
+    tick();
+  }
+
+  function removeFromHeat() {
+    if (!selectedBatteryId) return;
+    batteries[selectedBatteryId] = { status: 'idle', startMs: null };
+    toastTimers[selectedBatteryId + '_notified'] = false;
+    saveState();
+    closeModal();
+    tick();
+  }
+
+  // Time preset buttons
+  document.getElementById('time-preset-row').addEventListener('click', (e) => {
+    const btn = e.target.closest('.time-btn');
+    if (!btn) return;
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const val = btn.dataset.minutes;
+    const customWrap = document.getElementById('custom-minutes-wrap');
+    if (val === 'custom') {
+      customWrap.classList.add('visible');
+      selectedMinutesAgo = 0;
+    } else {
+      customWrap.classList.remove('visible');
+      selectedMinutesAgo = parseInt(val, 10);
+    }
+  });
+
+  // Close modal on backdrop click
+  document.getElementById('modal-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modal-backdrop')) closeModal();
+  });
+
+  // Filter buttons
+  document.getElementById('filter-row').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    buildGrid();
+  });
+
+  // Live update of modal times while open
+  setInterval(() => {
+    if (!selectedBatteryId) return;
+    const b = batteries[selectedBatteryId];
+    if (!b || b.status !== 'heating') return;
+    const elapsed = Date.now() - b.startMs;
+    const remaining = HEAT_DURATION_MS - elapsed;
+    const re = document.getElementById('modal-remaining');
+    const el = document.getElementById('modal-elapsed');
+    const ov = document.getElementById('modal-overdue-by');
+    if (re) re.textContent = formatCountdown(remaining);
+    if (el) el.textContent = formatElapsed(elapsed);
+    if (ov) ov.textContent = formatElapsed(Math.abs(remaining));
+  }, 1000);
+
+  // Init
+  initState();
+  tick();
+  tickInterval = setInterval(tick, 1000);
+</script>
+</body>
+</html>
