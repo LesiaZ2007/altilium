@@ -1,1091 +1,544 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>6328 Battery Tracker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      /* Official 6328 Brand Colors */
-      --gold:       #EFAB28;
-      --gold-dim:   rgba(239, 171, 40, 0.18);
-      --gold-glow:  rgba(239, 171, 40, 0.35);
-      --cream:      #F4F4EE;
-      --blue-mid:   #446CE3;
-      --blue-dark:  #2F4E94;
-      --blue-deeper:#162F65;
-      --navy:       #151D3B;
-
-      /* Semantic */
-      --bg:         var(--navy);
-      --surface:    #1A2340;
-      --surface2:   #1F2D52;
-      --border:     #2F4E94;
-      --border-dim: rgba(47, 78, 148, 0.5);
-      --text:       var(--cream);
-      --text-muted: #7A8DBF;
-
-      /* Status colors */
-      --green:      #22C55E;
-      --green-dim:  rgba(34, 197, 94, 0.15);
-      --red:        #EF4444;
-      --red-dim:    rgba(239, 68, 68, 0.15);
-      --warn:       var(--gold);
-      --warn-dim:   var(--gold-dim);
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Barlow', 'Helvetica Neue', Helvetica, sans-serif;
-      min-height: 100dvh;
-      overflow-x: hidden;
-    }
-
-    /* â”€â”€ Header â”€â”€ */
-    header {
-      background: var(--surface);
-      border-bottom: 2px solid var(--gold);
-      padding: 12px 18px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .logo-mark {
-      width: 44px;
-      height: 44px;
-      flex-shrink: 0;
-    }
-
-    .header-text h1 {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      line-height: 1.1;
-      color: var(--cream);
-    }
-
-    .header-text span {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--gold);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-
-    /* â”€â”€ Stats bar â”€â”€ */
-    .stats-bar {
-      display: flex;
-      gap: 8px;
-      padding: 10px 14px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border-dim);
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .stats-bar::-webkit-scrollbar { display: none; }
-
-    .stat-chip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surface2);
-      border: 1px solid var(--border-dim);
-      border-radius: 20px;
-      padding: 5px 12px;
-      white-space: nowrap;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: var(--text);
-    }
-
-    .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .dot-idle    { background: var(--text-muted); }
-    .dot-heating { background: var(--gold); }
-    .dot-ready   { background: var(--red); }
-
-    /* â”€â”€ Filter row â”€â”€ */
-    .filter-row {
-      display: flex;
-      gap: 7px;
-      padding: 10px 14px 6px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .filter-row::-webkit-scrollbar { display: none; }
-
-    .filter-btn {
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1.5px solid var(--border-dim);
-      background: var(--surface);
-      color: var(--text-muted);
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      cursor: pointer;
-      white-space: nowrap;
-      -webkit-tap-highlight-color: transparent;
-      transition: all 0.12s;
-    }
-    .filter-btn.active {
-      background: var(--gold);
-      border-color: var(--gold);
-      color: var(--navy);
-    }
-
-    /* â”€â”€ Battery grid â”€â”€ */
-    .grid-container {
-      padding: 12px 14px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 10px;
-    }
-
-    .battery-card {
-      background: var(--surface);
-      border: 1.5px solid var(--border-dim);
-      border-radius: 14px;
-      padding: 16px 14px 14px;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s, transform 0.1s;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      position: relative;
-      overflow: hidden;
-    }
-    .battery-card:active { transform: scale(0.96); }
-
-    .battery-card.state-idle:hover  { border-color: var(--blue-mid); }
-
-    .battery-card.state-heating {
-      border-color: var(--gold);
-      background: var(--warn-dim);
-    }
-    .battery-card.state-overdue {
-      border-color: var(--red);
-      background: var(--red-dim);
-      animation: pulse-red 1.4s ease-in-out infinite;
-    }
-    @keyframes pulse-red {
-      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-      50%      { box-shadow: 0 0 14px 3px rgba(239,68,68,0.4); }
-    }
-
-    .battery-icon {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      font-size: 20px;
-      opacity: 0.55;
-    }
-
-    .battery-label {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 11px;
-      color: var(--text-muted);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 2px;
-    }
-
-    .battery-num {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 32px;
-      font-weight: 800;
-      color: var(--cream);
-      line-height: 1;
-      margin-bottom: 10px;
-      letter-spacing: 0.5px;
-    }
-    .battery-card.state-heating .battery-num { color: var(--gold); }
-    .battery-card.state-overdue .battery-num { color: var(--red); }
-
-    .battery-status {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-    .battery-card.state-heating .battery-status { color: var(--gold); }
-    .battery-card.state-overdue .battery-status { color: var(--red); }
-
-    .battery-timer {
-      font-size: 16px;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      color: var(--text);
-    }
-    .battery-card.state-idle .battery-timer {
-      color: var(--text-muted);
-      font-weight: 400;
-      font-size: 13px;
-    }
-
-    .battery-last {
-      margin-top: 6px;
-      display: inline-block;
-      font-size: 10px;
-      font-weight: 700;
-      font-family: 'Barlow Condensed', sans-serif;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      background: var(--surface2);
-      border: 1px solid var(--border-dim);
-      border-radius: 5px;
-      padding: 2px 6px;
-    }
-
-    /* â”€â”€ Modal â”€â”€ */
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(10, 13, 30, 0.82);
-      z-index: 200;
-      align-items: flex-end;
-      justify-content: center;
-    }
-    .modal-backdrop.open { display: flex; }
-
-    .modal {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 20px 20px 0 0;
-      padding: 22px 22px 36px;
-      width: 100%;
-      max-width: 500px;
-      animation: slide-up 0.22s ease-out;
-    }
-    @keyframes slide-up {
-      from { transform: translateY(40px); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
-
-    .modal-handle {
-      width: 36px; height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      margin: 0 auto 18px;
-    }
-
-    .modal-title {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 2px;
-    }
-    .modal-subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-    }
-
-    .modal-info-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--surface2);
-      border: 1px solid var(--border-dim);
-      border-radius: 10px;
-      padding: 13px;
-      margin-bottom: 8px;
-    }
-    .modal-info-row .info-icon { font-size: 18px; }
-    .modal-info-row .info-text { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .modal-info-row .info-val  { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; margin-top: 1px; color: var(--cream); }
-
-    /* â”€â”€ Buttons â”€â”€ */
-    .btn-row {
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-      margin-top: 18px;
-    }
-    .btn {
-      padding: 15px;
-      border-radius: 12px;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-      transition: opacity 0.12s, transform 0.1s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active { transform: scale(0.97); }
-
-    .btn-gold {
-      background: var(--gold);
-      color: var(--navy);
-    }
-    .btn-gold:hover { opacity: 0.9; }
-
-    .btn-ghost {
-      background: var(--surface2);
-      color: var(--text);
-      border: 1.5px solid var(--border-dim);
-    }
-    .btn-red {
-      background: var(--red-dim);
-      color: var(--red);
-      border: 1.5px solid var(--red);
-    }
-
-    /* â”€â”€ Time preset â”€â”€ */
-    .time-input-section { margin-bottom: 18px; }
-
-    .time-input-label {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .time-input-row {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-    .time-btn {
-      flex: 1;
-      min-width: 60px;
-      padding: 12px 6px;
-      border-radius: 10px;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      border: 1.5px solid var(--border-dim);
-      background: var(--surface2);
-      color: var(--text);
-      cursor: pointer;
-      text-align: center;
-      transition: background 0.12s, border-color 0.12s, color 0.12s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .time-btn.selected {
-      background: var(--gold-dim);
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-    .time-btn:active { opacity: 0.7; }
-
-    #custom-minutes-wrap { margin-top: 9px; display: none; }
-    #custom-minutes-wrap.visible { display: block; }
-    #custom-minutes {
-      width: 100%;
-      padding: 13px;
-      border-radius: 10px;
-      background: var(--surface2);
-      border: 1.5px solid var(--border-dim);
-      color: var(--cream);
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 17px;
-      font-weight: 700;
-      text-align: center;
-      outline: none;
-      -webkit-appearance: none;
-    }
-    #custom-minutes:focus { border-color: var(--gold); }
-
-    /* â”€â”€ Toast â”€â”€ */
-    .toast-container {
-      position: fixed;
-      top: 76px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 300;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      pointer-events: none;
-      width: calc(100% - 28px);
-      max-width: 420px;
-    }
-    .toast {
-      background: var(--surface);
-      border: 1.5px solid var(--red);
-      border-radius: 12px;
-      padding: 13px 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: toast-in 0.22s ease-out;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.6);
-    }
-    .toast-text {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      color: var(--cream);
-    }
-    @keyframes toast-in {
-      from { transform: translateY(-14px); opacity: 0; }
-      to   { transform: translateY(0);     opacity: 1; }
-    }
-
-    /* â”€â”€ Tab bar â”€â”€ */
-    .tab-bar {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 62px;
-      background: var(--surface);
-      border-top: 1.5px solid var(--border-dim);
-      display: flex;
-      z-index: 150;
-    }
-    .tab-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      cursor: pointer;
-      border: none;
-      background: none;
-      color: var(--text-muted);
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      -webkit-tap-highlight-color: transparent;
-      transition: color 0.12s;
-    }
-    .tab-btn.active { color: var(--gold); }
-    .tab-btn svg { width: 22px; height: 22px; }
-
-    body { padding-bottom: 62px; }
-
-    /* â”€â”€ History page â”€â”€ */
-    #page-history { display: none; }
-    #page-history.active { display: block; }
-    #page-tracker.active { display: block; }
-    #page-tracker { display: none; }
-
-    .history-empty {
-      text-align: center;
-      padding: 60px 24px;
-      color: var(--text-muted);
-    }
-    .history-empty .big-icon { font-size: 44px; margin-bottom: 12px; }
-    .history-empty p { font-size: 15px; line-height: 1.5; }
-
-    .history-date-group { margin-bottom: 6px; }
-
-    .history-date-label {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--text-muted);
-      padding: 14px 16px 6px;
-    }
-
-    .history-entry {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: var(--surface);
-      border: 1.5px solid var(--border-dim);
-      border-radius: 12px;
-      margin: 0 14px 8px;
-      padding: 13px 14px;
-    }
-    .history-entry.was-overdue { border-color: rgba(239,68,68,0.4); }
-
-    .history-badge {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--gold);
-      background: var(--gold-dim);
-      border: 1.5px solid var(--gold);
-      border-radius: 8px;
-      padding: 6px 10px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .history-main { flex: 1; min-width: 0; }
-
-    .history-times {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--cream);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .history-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 3px;
-      flex-wrap: wrap;
-    }
-
-    .history-duration {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    .history-tag {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 2px 7px;
-      border-radius: 4px;
-    }
-    .history-tag.ok      { background: rgba(34,197,94,0.15); color: #22C55E; }
-    .history-tag.overdue { background: var(--red-dim); color: var(--red); }
-
-    .history-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px 4px;
-    }
-    .history-count {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-    }
-    .btn-clear {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: none;
-      border: 1.5px solid var(--border-dim);
-      color: var(--text-muted);
-      border-radius: 8px;
-      padding: 5px 12px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn-clear:active { opacity: 0.6; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>6328 Battery Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:      #EFAB28;
+  --gold-dim:  rgba(239,171,40,0.18);
+  --cream:     #F4F4EE;
+  --blue-mid:  #446CE3;
+  --blue-dark: #2F4E94;
+  --blue-deep: #162F65;
+  --navy:      #151D3B;
+  --surface:   #1A2340;
+  --surface2:  #1F2D52;
+  --border:    #2F4E94;
+  --bdim:      rgba(47,78,148,0.5);
+  --muted:     #7A8DBF;
+  --red:       #EF4444;
+  --red-dim:   rgba(239,68,68,0.15);
+  --green:     #22C55E;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--navy);
+  color: var(--cream);
+  font-family: 'Barlow', 'Helvetica Neue', sans-serif;
+  min-height: 100dvh;
+  padding-bottom: 62px;
+}
+header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--gold);
+  padding: 11px 16px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  width: 42px; height: 42px; flex-shrink: 0;
+  background: var(--blue-deep);
+  border: 1.5px solid var(--gold);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 800; color: var(--gold); letter-spacing: 0.5px;
+}
+.header-text h1 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 19px; font-weight: 800;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--cream); line-height: 1.1;
+}
+.header-text span {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 600; color: var(--gold);
+  text-transform: uppercase; letter-spacing: 2px;
+}
+.stats-bar {
+  display: flex; gap: 8px; padding: 9px 14px;
+  background: var(--surface); border-bottom: 1px solid var(--bdim);
+  overflow-x: auto; scrollbar-width: none;
+}
+.stats-bar::-webkit-scrollbar { display: none; }
+.stat-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface2); border: 1px solid var(--bdim);
+  border-radius: 20px; padding: 5px 12px; white-space: nowrap;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-idle { background: var(--muted); }
+.dot-heat { background: var(--gold); }
+.dot-rddy { background: var(--red); }
+.filter-row {
+  display: flex; gap: 7px; padding: 9px 14px 5px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-btn {
+  padding: 6px 13px; border-radius: 20px;
+  border: 1.5px solid var(--bdim);
+  background: var(--surface); color: var(--muted);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; cursor: pointer; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent; transition: all 0.12s;
+}
+.filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+.grid-container {
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.bcard {
+  background: var(--surface); border: 1.5px solid var(--bdim);
+  border-radius: 14px; padding: 16px 14px 14px;
+  cursor: pointer; position: relative; overflow: hidden;
+  user-select: none; -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.bcard:active { transform: scale(0.96); }
+.bcard.idle:hover { border-color: var(--blue-mid); }
+.bcard.heating { border-color: var(--gold); background: var(--gold-dim); }
+.bcard.overdue { border-color: var(--red); background: var(--red-dim); animation: pred 1.4s ease-in-out infinite; }
+@keyframes pred {
+  0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  50%      { box-shadow: 0 0 14px 3px rgba(239,68,68,0.4); }
+}
+.bc-icon { position: absolute; top: 12px; right: 12px; font-size: 20px; opacity: 0.55; }
+.bc-lbl  { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+.bc-num  { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 800; color: var(--cream); line-height: 1; margin-bottom: 10px; }
+.bcard.heating .bc-num { color: var(--gold); }
+.bcard.overdue .bc-num { color: var(--red); }
+.bc-stat { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+.bcard.heating .bc-stat { color: var(--gold); }
+.bcard.overdue .bc-stat { color: var(--red); }
+.bc-time { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cream); }
+.bcard.idle .bc-time { color: var(--muted); font-weight: 400; font-size: 13px; }
+.bc-last { margin-top: 7px; display: inline-block; font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); background: var(--surface2); border: 1px solid var(--bdim); border-radius: 5px; padding: 2px 7px; }
+.page { display: none; }
+.page.active { display: block; }
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 62px; background: var(--surface);
+  border-top: 1.5px solid var(--bdim);
+  display: flex; z-index: 150;
+}
+.tab-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  cursor: pointer; border: none; background: none; color: var(--muted);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; -webkit-tap-highlight-color: transparent;
+  transition: color 0.12s;
+}
+.tab-btn.active { color: var(--gold); }
+.tab-btn svg { width: 22px; height: 22px; }
+.modal-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,13,30,0.82);
+  z-index: 200; align-items: flex-end; justify-content: center;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 20px 20px 0 0; padding: 22px 22px 36px;
+  width: 100%; max-width: 500px;
+  max-height: 90dvh; overflow-y: auto;
+  animation: slideup 0.22s ease-out;
+}
+@keyframes slideup { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.mhandle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 18px; }
+.mtitle { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); margin-bottom: 2px; }
+.msub   { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+.irow   { display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--bdim); border-radius: 10px; padding: 13px; margin-bottom: 8px; }
+.irow .ic { font-size: 18px; }
+.irow .il { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.irow .iv { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; margin-top: 1px; }
+.btn-row { display: flex; flex-direction: column; gap: 9px; margin-top: 16px; }
+.btn { padding: 15px; border-radius: 12px; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; border: none; cursor: pointer; width: 100%; transition: opacity 0.12s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
+.btn:active { transform: scale(0.97); }
+.btn-gold  { background: var(--gold); color: var(--navy); }
+.btn-ghost { background: var(--surface2); color: var(--cream); border: 1.5px solid var(--bdim); }
+.btn-red   { background: var(--red-dim); color: var(--red); border: 1.5px solid var(--red); }
+.tsec { margin-bottom: 16px; }
+.tlbl { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px; }
+.trow { display: flex; gap: 7px; flex-wrap: wrap; }
+.tbtn { flex: 1; min-width: 58px; padding: 12px 6px; border-radius: 10px; font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; border: 1.5px solid var(--bdim); background: var(--surface2); color: var(--cream); cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent; transition: all 0.12s; }
+.tbtn.sel { background: var(--gold-dim); border-color: var(--gold); color: var(--gold); }
+.tbtn:active { opacity: 0.7; }
+.cwrap { margin-top: 9px; display: none; }
+.cwrap.show { display: block; }
+.cwrap input { width: 100%; padding: 13px; border-radius: 10px; background: var(--surface2); border: 1.5px solid var(--bdim); color: var(--cream); font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; text-align: center; outline: none; }
+.cwrap input:focus { border-color: var(--gold); }
+.htoolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 4px; }
+.hcount { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+.btn-sm { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: none; border: 1.5px solid var(--bdim); color: var(--muted); border-radius: 8px; padding: 5px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.btn-sm:active { opacity: 0.6; }
+.hdatelbl { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); padding: 14px 16px 6px; }
+.hentry { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1.5px solid var(--bdim); border-radius: 12px; margin: 0 14px 8px; padding: 13px 14px; }
+.hentry.late { border-color: rgba(239,68,68,0.4); }
+.hbadge { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; color: var(--gold); background: var(--gold-dim); border: 1.5px solid var(--gold); border-radius: 8px; padding: 6px 10px; white-space: nowrap; flex-shrink: 0; }
+.hmain { flex: 1; min-width: 0; }
+.htimes { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hmeta { display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
+.hdur  { font-size: 12px; color: var(--muted); font-weight: 600; }
+.htag  { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 4px; }
+.htag.ok   { background: rgba(34,197,94,0.15); color: var(--green); }
+.htag.late { background: var(--red-dim); color: var(--red); }
+.empty { text-align: center; padding: 60px 24px; color: var(--muted); }
+.empty .big { font-size: 44px; margin-bottom: 12px; }
+.empty p { font-size: 15px; line-height: 1.6; }
+.msec { padding: 14px 14px 6px; }
+.msec-title { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+.add-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.add-row input { flex: 1; padding: 13px 14px; border-radius: 10px; background: var(--surface); border: 1.5px solid var(--bdim); color: var(--cream); font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; outline: none; }
+.add-row input:focus { border-color: var(--gold); }
+.add-row input::placeholder { color: var(--muted); font-weight: 400; }
+.btn-add { padding: 13px 16px; border-radius: 10px; background: var(--gold); color: var(--navy); font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 800; border: none; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+.btn-add:active { opacity: 0.8; }
+.blist-item { display: flex; align-items: center; background: var(--surface); border: 1.5px solid var(--bdim); border-radius: 10px; padding: 12px 14px; margin-bottom: 7px; gap: 12px; }
+.blist-num { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; color: var(--gold); flex: 1; }
+.blist-st  { font-size: 12px; color: var(--muted); margin-right: 8px; }
+.btn-rm { padding: 6px 12px; border-radius: 7px; background: var(--red-dim); color: var(--red); border: 1px solid var(--red); font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.btn-rm:disabled { opacity: 0.3; cursor: default; }
+.btn-rm:not(:disabled):active { opacity: 0.7; }
+.toast-container { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: calc(100% - 28px); max-width: 420px; }
+.toast { background: var(--surface); border: 1.5px solid var(--red); border-radius: 12px; padding: 13px 16px; animation: tin 0.22s ease-out; box-shadow: 0 4px 24px rgba(0,0,0,0.6); }
+.toast span { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; color: var(--cream); }
+@keyframes tin { from { transform: translateY(-14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
 </head>
 <body>
 
 <header>
-  <!-- Inline gear SVG approximating the 6328 logo mark -->
-  <svg class="logo-mark" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="22" cy="22" r="21" fill="#162F65" stroke="#EFAB28" stroke-width="1.5"/>
-    <!-- gear teeth (simplified) -->
-    <g fill="#151D3B" stroke="#EFAB28" stroke-width="0.8">
-      <rect x="19.5" y="1" width="5" height="5" rx="1"/>
-      <rect x="19.5" y="38" width="5" height="5" rx="1"/>
-      <rect x="1" y="19.5" width="5" height="5" rx="1"/>
-      <rect x="38" y="19.5" width="5" height="5" rx="1"/>
-      <rect x="7.3" y="5.8" width="5" height="5" rx="1" transform="rotate(-45 7.3 5.8)"/>
-      <rect x="31.7" y="5.8" width="5" height="5" rx="1" transform="rotate(45 36.7 5.8)"/>
-      <rect x="7.3" y="33.2" width="5" height="5" rx="1" transform="rotate(45 7.3 33.2)"/>
-      <rect x="31.7" y="33.2" width="5" height="5" rx="1" transform="rotate(-45 31.7 33.2)"/>
-    </g>
-    <circle cx="22" cy="22" r="14" fill="#162F65" stroke="#2F4E94" stroke-width="1"/>
-    <!-- crescent moon arc -->
-    <path d="M 16 22 A 8 8 0 0 1 28 16 A 11 11 0 0 0 16 22 Z" fill="#EFAB28"/>
-    <path d="M 16 22 A 8 8 0 0 0 28 28 A 11 11 0 0 1 16 22 Z" fill="#EFAB28" opacity="0.6"/>
-    <!-- 6328 text -->
-    <text x="22" y="25.5" text-anchor="middle" font-family="'Barlow Condensed',sans-serif" font-size="9" font-weight="800" fill="#F4F4EE" letter-spacing="0.5">6328</text>
-  </svg>
+  <div class="logo">6328</div>
   <div class="header-text">
     <h1>Battery Tracker</h1>
-    <span>Mechanical Advantage Â· FRC 6328</span>
+    <span>Mechanical Advantage</span>
   </div>
 </header>
 
-<div id="page-tracker" class="active">
-
-<div class="stats-bar" id="stats-bar"></div>
-
-<div class="filter-row" id="filter-row">
-  <button class="filter-btn active" data-filter="all">All</button>
-  <button class="filter-btn" data-filter="heating">Heating</button>
-  <button class="filter-btn" data-filter="ready">Remove Now</button>
-  <button class="filter-btn" data-filter="idle">Idle</button>
+<div id="page-tracker" class="page active">
+  <div class="stats-bar" id="stats-bar"></div>
+  <div class="filter-row" id="filter-row">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="heating">Heating</button>
+    <button class="filter-btn" data-filter="ready">Remove Now</button>
+    <button class="filter-btn" data-filter="idle">Idle</button>
+  </div>
+  <div class="grid-container" id="grid"></div>
 </div>
 
-<div class="grid-container" id="grid"></div>
+<div id="page-history" class="page">
+  <div id="hist-content"></div>
+</div>
 
-</div><!-- /page-tracker -->
+<div id="page-manage" class="page">
+  <div class="msec">
+    <div class="msec-title">Add Battery</div>
+    <div class="add-row">
+      <input type="text" id="add-input" placeholder="e.g. 031" maxlength="3" inputmode="numeric">
+      <button class="btn-add" onclick="addBattery()">+ Add</button>
+    </div>
+    <div class="msec-title">All Batteries</div>
+    <div id="blist"></div>
+  </div>
+</div>
 
-<div id="page-history"></div>
-
-<!-- Tab bar -->
 <div class="tab-bar">
   <button class="tab-btn active" id="tab-tracker" onclick="switchTab('tracker')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
-    </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
     Tracker
   </button>
   <button class="tab-btn" id="tab-history" onclick="switchTab('history')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-    </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     History
+  </button>
+  <button class="tab-btn" id="tab-manage" onclick="switchTab('manage')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    Manage
   </button>
 </div>
 
-<!-- Modal -->
 <div class="modal-backdrop" id="modal-backdrop">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-title"></div>
-    <div class="modal-subtitle" id="modal-subtitle"></div>
-    <div id="modal-info-section"></div>
-    <div id="modal-time-section" class="time-input-section" style="display:none">
-      <div class="time-input-label">How long ago did heating start?</div>
-      <div class="time-input-row" id="time-preset-row">
-        <button class="time-btn selected" data-minutes="0">Just now</button>
-        <button class="time-btn" data-minutes="15">15 min</button>
-        <button class="time-btn" data-minutes="30">30 min</button>
-        <button class="time-btn" data-minutes="45">45 min</button>
-        <button class="time-btn" data-minutes="custom">Other</button>
+    <div class="mhandle"></div>
+    <div class="mtitle" id="mtitle"></div>
+    <div class="msub" id="msub"></div>
+    <div id="minfo"></div>
+    <div id="mtime" class="tsec" style="display:none">
+      <div class="tlbl">How long ago did heating start?</div>
+      <div class="trow" id="trow">
+        <button class="tbtn sel" data-m="0">Just now</button>
+        <button class="tbtn" data-m="15">15 min</button>
+        <button class="tbtn" data-m="30">30 min</button>
+        <button class="tbtn" data-m="45">45 min</button>
+        <button class="tbtn" data-m="custom">Other</button>
       </div>
-      <div id="custom-minutes-wrap">
-        <input type="number" id="custom-minutes" min="0" max="59" placeholder="Minutes ago" inputmode="numeric" />
-      </div>
+      <div class="cwrap" id="cwrap"><input type="number" id="cmin" min="0" max="59" placeholder="Minutes ago" inputmode="numeric"></div>
     </div>
-    <div class="btn-row" id="modal-actions"></div>
+    <div class="btn-row" id="mactions"></div>
   </div>
 </div>
 
 <div class="toast-container" id="toast-container"></div>
 
 <script>
-  const TOTAL = 30;
-  const HEAT_MS = 60 * 60 * 1000;
+var HEAT_MS = 3600000;
+var bats = {};
+var heatLog = [];
+var bIds = [];
+var curFilter = 'all';
+var selId = null;
+var minsAgo = 0;
+var alerted = {};
 
-  let batteries = {};
-  let heatLog = [];
-  let currentFilter = 'all';
-  let currentPage = 'tracker';
-  let selectedId = null;
-  let selectedMinsAgo = 0;
-  let toastFired = {};
+function mkid(n) { return '2026-' + String(n).padStart(3,'0'); }
 
-  function id(n) { return '2026-' + String(n).padStart(3, '0'); }
+function init() {
+  var si = localStorage.getItem('ma-ids');
+  if (si) { try { bIds = JSON.parse(si); } catch(e) {} }
+  if (!bIds.length) { for (var i=1;i<=30;i++) bIds.push(mkid(i)); }
+  var sb = localStorage.getItem('ma-bats');
+  if (sb) { try { bats = JSON.parse(sb); } catch(e) {} }
+  bIds.forEach(function(bid){ if (!bats[bid]) bats[bid] = {status:'idle',startMs:null}; });
+  var sh = localStorage.getItem('ma-log');
+  if (sh) { try { heatLog = JSON.parse(sh); } catch(e) {} }
+}
 
-  function init() {
-    const saved = localStorage.getItem('ma6328-batteries');
-    if (saved) { try { batteries = JSON.parse(saved); } catch(e) {} }
-    for (let i = 1; i <= TOTAL; i++) {
-      if (!batteries[id(i)]) batteries[id(i)] = { status: 'idle', startMs: null };
+function persist() {
+  localStorage.setItem('ma-ids', JSON.stringify(bIds));
+  localStorage.setItem('ma-bats', JSON.stringify(bats));
+}
+function persistLog() { localStorage.setItem('ma-log', JSON.stringify(heatLog)); }
+
+function status(bid) {
+  var b = bats[bid];
+  if (!b) return 'idle';
+  if (b.status !== 'heating') return b.status;
+  return (Date.now()-b.startMs >= HEAT_MS) ? 'overdue' : 'heating';
+}
+
+function lastHeat(bid) {
+  for (var i=heatLog.length-1;i>=0;i--) { if (heatLog[i].bid===bid) return heatLog[i]; }
+  return null;
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+function ftc(ms) { var t=Math.max(0,ms); return pad(Math.floor(t/60000))+':'+pad(Math.floor((t%60000)/1000)); }
+function fel(ms) { var t=Math.abs(ms),m=Math.floor(t/60000),s=Math.floor((t%60000)/1000); return m>=60?Math.floor(m/60)+'h '+(m%60)+'m':m+'m '+s+'s'; }
+function ft(ms)  { return new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+function fd(ms)  { return new Date(ms).toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'}); }
+
+function sortedIds() {
+  return bIds.slice().sort(function(a,b) {
+    var sa=status(a),sb=status(b),ha=sa==='heating'||sa==='overdue',hb=sb==='heating'||sb==='overdue';
+    if (ha!==hb) return ha?-1:1;
+    if (ha&&hb) {
+      if (sa==='overdue'&&sb!=='overdue') return -1;
+      if (sb==='overdue'&&sa!=='overdue') return 1;
+      return bats[a].startMs-bats[b].startMs;
     }
-    const savedH = localStorage.getItem('ma6328-history');
-    if (savedH) { try { heatLog = JSON.parse(savedH); } catch(e) {} }
-  }
+    var la=lastHeat(a),lb=lastHeat(b),ta=la?la.endMs:0,tb=lb?lb.endMs:0;
+    if (ta!==tb) return ta-tb;
+    return parseInt(a.split('-')[1])-parseInt(b.split('-')[1]);
+  });
+}
 
-  function save() { localStorage.setItem('ma6328-batteries', JSON.stringify(batteries)); }
-  function saveHistory() { localStorage.setItem('ma6328-history', JSON.stringify(history)); }
+function buildStats() {
+  var idle=0,heat=0,over=0;
+  bIds.forEach(function(b){ var s=status(b); if(s==='idle')idle++; else if(s==='heating')heat++; else if(s==='overdue')over++; });
+  document.getElementById('stats-bar').innerHTML=
+    '<div class="stat-chip"><div class="dot dot-idle"></div>'+idle+' Idle</div>'+
+    '<div class="stat-chip"><div class="dot dot-heat"></div>'+heat+' Heating</div>'+
+    '<div class="stat-chip"><div class="dot dot-rddy"></div>'+over+' Remove Now</div>';
+}
 
-  function lastHeated(bid) {
-    for (let i = heatLog.length - 1; i >= 0; i--) {
-      if (heatLog[i].bid === bid) return heatLog[i];
+function buildGrid() {
+  var grid=document.getElementById('grid'), ids=sortedIds();
+  ids.forEach(function(bid) {
+    var b=bats[bid], s=status(bid);
+    var show=curFilter==='all'||(curFilter==='heating'&&(s==='heating'||s==='overdue'))||(curFilter==='ready'&&s==='overdue')||(curFilter==='idle'&&s==='idle');
+    var card=grid.querySelector('[data-id="'+bid+'"]');
+    if(!card){
+      card=document.createElement('div');
+      card.dataset.id=bid;
+      card.addEventListener('click',(function(id){return function(){openModal(id);};})(bid));
     }
-    return null;
+    grid.appendChild(card);
+    card.style.display=show?'':'none';
+    card.className='bcard '+(s==='overdue'?'overdue':s);
+    var icon=s==='idle'?'🔋':s==='heating'?'🔥':'⚠️';
+    var stxt=s==='idle'?'Idle':s==='heating'?'Heating':'REMOVE NOW';
+    var ttxt=s==='idle'?'Tap to heat':s==='heating'?ftc(HEAT_MS-(Date.now()-b.startMs))+' left':fel((Date.now()-b.startMs)-HEAT_MS)+' overdue';
+    var lh=lastHeat(bid);
+    card.innerHTML='<div class="bc-icon">'+icon+'</div><div class="bc-lbl">Battery</div><div class="bc-num">'+bid.split('-')[1]+'</div><div class="bc-stat">'+stxt+'</div><div class="bc-time">'+ttxt+'</div>'+(lh?'<div class="bc-last">Last: '+ft(lh.endMs)+'</div>':'');
+  });
+  var all=grid.querySelectorAll('.bcard');
+  all.forEach(function(c){ if(bIds.indexOf(c.dataset.id)===-1) c.remove(); });
+}
+
+function buildHistory() {
+  var el=document.getElementById('hist-content');
+  if(!heatLog.length){
+    el.innerHTML='<div class="empty"><div class="big">🕐</div><p>No sessions yet.<br>Remove a battery from heat to log it here.</p></div>';
+    return;
   }
-
-  function effectiveStatus(bid) {
-    const b = batteries[bid];
-    if (b.status !== 'heating') return b.status;
-    return (Date.now() - b.startMs >= HEAT_MS) ? 'overdue' : 'heating';
-  }
-
-  function fmtCountdown(ms) {
-    const t = Math.max(0, ms);
-    return `${String(Math.floor(t/60000)).padStart(2,'0')}:${String(Math.floor((t%60000)/1000)).padStart(2,'0')}`;
-  }
-
-  function fmtElapsed(ms) {
-    const t = Math.abs(ms);
-    const m = Math.floor(t/60000), s = Math.floor((t%60000)/1000);
-    return m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m ${s}s`;
-  }
-
-  function fmtTime(ms) {
-    return new Date(ms).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-  }
-
-  function buildStats() {
-    let idle=0, heating=0, overdue=0;
-    for (let i=1;i<=TOTAL;i++) {
-      const s = effectiveStatus(id(i));
-      if (s==='idle') idle++;
-      else if (s==='heating') heating++;
-      else if (s==='overdue') overdue++;
-    }
-    document.getElementById('stats-bar').innerHTML = `
-      <div class="stat-chip"><div class="dot dot-idle"></div>${idle} Idle</div>
-      <div class="stat-chip"><div class="dot dot-heating"></div>${heating} Heating</div>
-      <div class="stat-chip"><div class="dot dot-ready"></div>${overdue} Remove Now</div>
-    `;
-  }
-
-  function sortedBatteryIds() {
-    const ids = [];
-    for (let i=1;i<=TOTAL;i++) ids.push(id(i));
-
-    ids.sort((a, b) => {
-      const sa = effectiveStatus(a), sb = effectiveStatus(b);
-      const heatingA = sa==='heating'||sa==='overdue';
-      const heatingB = sb==='heating'||sb==='overdue';
-
-      // 1. Heating batteries first; overdue before heating (most urgent)
-      if (heatingA !== heatingB) return heatingA ? -1 : 1;
-      if (heatingA && heatingB) {
-        if (sa==='overdue' && sb!=='overdue') return -1;
-        if (sb==='overdue' && sa!=='overdue') return 1;
-        // both same sub-state: least time remaining first
-        return batteries[a].startMs - batteries[b].startMs;
-      }
-
-      // 2. Both idle: sort by last heated time ascending (longest ago first; never = treat as 0)
-      const lastA = lastHeated(a), lastB = lastHeated(b);
-      const timeA = lastA ? lastA.endMs : 0;
-      const timeB = lastB ? lastB.endMs : 0;
-      if (timeA !== timeB) return timeA - timeB;
-
-      // 3. Battery number order
-      return parseInt(a.split('-')[1]) - parseInt(b.split('-')[1]);
+  var groups={};
+  heatLog.slice().reverse().forEach(function(e){var d=fd(e.endMs);if(!groups[d])groups[d]=[];groups[d].push(e);});
+  var h='<div class="htoolbar"><span class="hcount">'+heatLog.length+' session'+(heatLog.length!==1?'s':'')+'</span><button class="btn-sm" onclick="clearLog()">Clear All</button></div>';
+  Object.keys(groups).forEach(function(date){
+    h+='<div class="hdatelbl">'+date+'</div>';
+    groups[date].forEach(function(e){
+      h+='<div class="hentry'+(e.overdue?' late':'')+'"><div class="hbadge">'+e.bid.split('-')[1]+'</div><div class="hmain"><div class="htimes">'+ft(e.startMs)+' &rarr; '+ft(e.endMs)+'</div><div class="hmeta"><span class="hdur">'+fel(e.endMs-e.startMs)+'</span>'+(e.overdue?'<span class="htag late">Overdue</span>':'<span class="htag ok">On Time</span>')+'</div></div></div>';
     });
-
-    return ids;
-  }
-
-  function buildGrid() {
-    const grid = document.getElementById('grid');
-    const sorted = sortedBatteryIds();
-
-    // Re-order DOM to match sort, creating cards as needed
-    sorted.forEach((bid, idx) => {
-      const b = batteries[bid];
-      const status = effectiveStatus(bid);
-      const show = currentFilter==='all'
-        || (currentFilter==='heating' && (status==='heating'||status==='overdue'))
-        || (currentFilter==='ready'   && status==='overdue')
-        || (currentFilter==='idle'    && status==='idle');
-
-      let card = grid.querySelector(`.battery-card[data-id="${bid}"]`);
-      if (!card) {
-        card = document.createElement('div');
-        card.className = 'battery-card';
-        card.dataset.id = bid;
-        card.addEventListener('click', () => openModal(bid));
-      }
-      grid.appendChild(card); // append re-orders naturally to match sorted order
-
-      card.style.display = show ? '' : 'none';
-      card.className = `battery-card state-${status==='overdue'?'overdue':status}`;
-
-      let statusText, timerText, icon;
-      if (status==='idle') {
-        statusText='Idle'; timerText='Tap to heat'; icon='ðŸ”‹';
-      } else if (status==='heating') {
-        const rem = HEAT_MS - (Date.now() - b.startMs);
-        statusText='Heating'; timerText=fmtCountdown(rem)+' left'; icon='ðŸ”¥';
-      } else {
-        const over = (Date.now()-b.startMs)-HEAT_MS;
-        statusText='REMOVE NOW'; timerText=fmtElapsed(over)+' overdue'; icon='âš ï¸';
-      }
-
-      const last = lastHeated(bid);
-      const lastChip = last
-        ? `<div class="battery-last">Last: ${fmtTime(last.endMs)}</div>`
-        : '';
-
-      card.innerHTML = `
-        <div class="battery-icon">${icon}</div>
-        <div class="battery-label">Battery</div>
-        <div class="battery-num">${bid.split('-')[1]}</div>
-        <div class="battery-status">${statusText}</div>
-        <div class="battery-timer">${timerText}</div>
-        ${lastChip}
-      `;
-    }
-  }
-
-  function checkNotifications() {
-    for (let i=1;i<=TOTAL;i++) {
-      const bid = id(i);
-      const b = batteries[bid];
-      if (b.status==='heating') {
-        const status = effectiveStatus(bid);
-        if (status==='overdue' && !toastFired[bid]) {
-          toastFired[bid] = true;
-          showToast(`âš ï¸ Battery ${bid} is ready â€” remove from heat!`);
-        }
-        if (status==='heating') toastFired[bid] = false;
-      }
-    }
-  }
-
-  function showToast(msg) {
-    const tc = document.getElementById('toast-container');
-    const t = document.createElement('div');
-    t.className='toast';
-    t.innerHTML=`<span class="toast-text">${msg}</span>`;
-    tc.appendChild(t);
-    setTimeout(()=>{ t.style.transition='opacity 0.4s'; t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 5000);
-  }
-
-  function tick() { buildStats(); buildGrid(); checkNotifications(); }
-
-  // â”€â”€ Modal â”€â”€
-  function openModal(bid) {
-    selectedId = bid;
-    selectedMinsAgo = 0;
-    const b = batteries[bid];
-    const status = effectiveStatus(bid);
-
-    document.getElementById('modal-title').textContent = `Battery ${bid}`;
-    const infoSec = document.getElementById('modal-info-section');
-    const timeSec = document.getElementById('modal-time-section');
-    const actions = document.getElementById('modal-actions');
-    infoSec.innerHTML=''; timeSec.style.display='none'; actions.innerHTML='';
-
-    if (status==='idle') {
-      document.getElementById('modal-subtitle').textContent = 'This battery is not currently heating.';
-      timeSec.style.display='block';
-      resetTimePresets();
-      actions.innerHTML=`
-        <button class="btn btn-gold" onclick="startHeating()">ðŸ”¥ Start Heating</button>
-        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      `;
-    } else if (status==='heating') {
-      const rem = HEAT_MS-(Date.now()-b.startMs);
-      const elapsed = Date.now()-b.startMs;
-      document.getElementById('modal-subtitle').textContent = 'Currently heating â€” check the timer.';
-      infoSec.innerHTML=`
-        <div class="modal-info-row"><span class="info-icon">ðŸ•</span><div><div class="info-text">Started at</div><div class="info-val">${fmtTime(b.startMs)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">â±ï¸</span><div><div class="info-text">Time elapsed</div><div class="info-val" id="modal-elapsed">${fmtElapsed(elapsed)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">âœ…</span><div><div class="info-text">Remove at</div><div class="info-val">${fmtTime(b.startMs+HEAT_MS)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">â³</span><div><div class="info-text">Time remaining</div><div class="info-val" id="modal-remaining">${fmtCountdown(rem)}</div></div></div>
-      `;
-      actions.innerHTML=`
-        <button class="btn btn-red" onclick="removeFromHeat()">âœ… Mark as Removed</button>
-        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
-      `;
-    } else {
-      const over = (Date.now()-b.startMs)-HEAT_MS;
-      document.getElementById('modal-subtitle').textContent = 'This battery should have been removed already!';
-      infoSec.innerHTML=`
-        <div class="modal-info-row"><span class="info-icon">ðŸ•</span><div><div class="info-text">Started at</div><div class="info-val">${fmtTime(b.startMs)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">âš ï¸</span><div><div class="info-text">Should have removed at</div><div class="info-val">${fmtTime(b.startMs+HEAT_MS)}</div></div></div>
-        <div class="modal-info-row"><span class="info-icon">â°</span><div><div class="info-text">Overdue by</div><div class="info-val" id="modal-overdue-by" style="color:var(--red)">${fmtElapsed(over)}</div></div></div>
-      `;
-      actions.innerHTML=`
-        <button class="btn btn-red" onclick="removeFromHeat()">âœ… Mark as Removed</button>
-        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
-      `;
-    }
-    document.getElementById('modal-backdrop').classList.add('open');
-  }
-
-  function closeModal() {
-    document.getElementById('modal-backdrop').classList.remove('open');
-    selectedId=null;
-  }
-
-  function resetTimePresets() {
-    selectedMinsAgo=0;
-    document.querySelectorAll('.time-btn').forEach(b=>b.classList.toggle('selected', b.dataset.minutes==='0'));
-    document.getElementById('custom-minutes-wrap').classList.remove('visible');
-    document.getElementById('custom-minutes').value='';
-  }
-
-  function startHeating() {
-    if (!selectedId) return;
-    let ago = selectedMinsAgo;
-    const cw = document.getElementById('custom-minutes-wrap');
-    if (cw.classList.contains('visible')) {
-      const v = parseInt(document.getElementById('custom-minutes').value, 10);
-      ago = isNaN(v) ? 0 : Math.min(v, 59);
-    }
-    batteries[selectedId] = { status:'heating', startMs: Date.now() - ago*60000 };
-    save(); closeModal(); tick();
-  }
-
-  function removeFromHeat() {
-    if (!selectedId) return;
-    const b = batteries[selectedId];
-    const endMs = Date.now();
-    const wasOverdue = effectiveStatus(selectedId) === 'overdue';
-    heatLog.push({ bid: selectedId, startMs: b.startMs, endMs, overdue: wasOverdue });
-    saveHistory();
-    batteries[selectedId] = { status:'idle', startMs:null };
-    toastFired[selectedId] = false;
-    save(); closeModal(); tick();
-  }
-
-  document.getElementById('time-preset-row').addEventListener('click', e => {
-    const btn = e.target.closest('.time-btn');
-    if (!btn) return;
-    document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('selected'));
-    btn.classList.add('selected');
-    const v = btn.dataset.minutes;
-    const cw = document.getElementById('custom-minutes-wrap');
-    if (v==='custom') { cw.classList.add('visible'); selectedMinsAgo=0; }
-    else { cw.classList.remove('visible'); selectedMinsAgo=parseInt(v,10); }
   });
+  el.innerHTML=h;
+}
 
-  document.getElementById('modal-backdrop').addEventListener('click', e => {
-    if (e.target===document.getElementById('modal-backdrop')) closeModal();
+function clearLog() {
+  if(!confirm('Clear all heating history?')) return;
+  heatLog=[]; persistLog(); buildHistory();
+}
+
+function buildManage() {
+  var list=document.getElementById('blist'), h='';
+  bIds.forEach(function(bid){
+    var s=status(bid), sl=s==='idle'?'Idle':s==='heating'?'Heating':'Remove Now';
+    h+='<div class="blist-item"><div class="blist-num">'+bid+'</div><div class="blist-st">'+sl+'</div><button class="btn-rm" onclick="removeBat(\''+bid+'\')" '+(s==='idle'?'':'disabled')+'>Remove</button></div>';
   });
+  list.innerHTML=h||'<div style="color:var(--muted);text-align:center;padding:20px">No batteries</div>';
+}
 
-  document.getElementById('filter-row').addEventListener('click', e => {
-    const btn = e.target.closest('.filter-btn');
-    if (!btn) return;
-    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentFilter=btn.dataset.filter;
-    buildGrid();
+function addBattery() {
+  var inp=document.getElementById('add-input'),val=inp.value.trim();
+  if(!val||isNaN(val)){inp.focus();return;}
+  var bid='2026-'+String(parseInt(val)).padStart(3,'0');
+  if(bIds.indexOf(bid)!==-1){alert(bid+' already exists');return;}
+  bIds.push(bid); bIds.sort(function(a,b){return parseInt(a.split('-')[1])-parseInt(b.split('-')[1]);});
+  bats[bid]={status:'idle',startMs:null}; persist(); inp.value='';
+  buildManage(); buildGrid(); buildStats();
+}
+
+function removeBat(bid) {
+  if(status(bid)!=='idle'){alert('Cannot remove a battery that is heating.');return;}
+  if(!confirm('Remove '+bid+'?')) return;
+  bIds=bIds.filter(function(id){return id!==bid;}); delete bats[bid]; persist();
+  buildManage(); buildGrid(); buildStats();
+}
+
+function checkAlerts() {
+  bIds.forEach(function(bid){
+    if(bats[bid]&&bats[bid].status==='heating'){
+      var s=status(bid);
+      if(s==='overdue'&&!alerted[bid]){alerted[bid]=true;showToast('Battery '+bid+' is ready! Remove from heat.');}
+      if(s==='heating') alerted[bid]=false;
+    }
   });
+}
 
-  // Live modal timer updates
-  setInterval(()=>{
-    if (!selectedId) return;
-    const b = batteries[selectedId];
-    if (!b || b.status!=='heating') return;
-    const elapsed = Date.now()-b.startMs;
-    const rem = HEAT_MS-elapsed;
-    const re=document.getElementById('modal-remaining');
-    const el=document.getElementById('modal-elapsed');
-    const ov=document.getElementById('modal-overdue-by');
-    if (re) re.textContent=fmtCountdown(rem);
-    if (el) el.textContent=fmtElapsed(elapsed);
-    if (ov) ov.textContent=fmtElapsed(Math.abs(rem));
-  }, 1000);
+function showToast(msg) {
+  var tc=document.getElementById('toast-container'),t=document.createElement('div');
+  t.className='toast'; t.innerHTML='<span>'+msg+'</span>'; tc.appendChild(t);
+  setTimeout(function(){t.style.transition='opacity 0.4s';t.style.opacity='0';setTimeout(function(){t.remove();},400);},5000);
+}
 
-  // â”€â”€ Tab navigation â”€â”€
-  function switchTab(page) {
-    currentPage = page;
-    document.getElementById('page-tracker').classList.toggle('active', page==='tracker');
-    document.getElementById('page-history').classList.toggle('active', page==='history');
-    document.getElementById('tab-tracker').classList.toggle('active', page==='tracker');
-    document.getElementById('tab-history').classList.toggle('active', page==='history');
-    if (page==='history') buildHistory();
+function tick() { buildStats(); buildGrid(); checkAlerts(); }
+
+function irow(icon,lbl,val) { return '<div class="irow"><span class="ic">'+icon+'</span><div><div class="il">'+lbl+'</div><div class="iv">'+val+'</div></div></div>'; }
+
+function openModal(bid) {
+  selId=bid; minsAgo=0;
+  var b=bats[bid], s=status(bid);
+  document.getElementById('mtitle').textContent='Battery '+bid;
+  var info=document.getElementById('minfo'),mtime=document.getElementById('mtime'),mact=document.getElementById('mactions');
+  info.innerHTML=''; mtime.style.display='none'; mact.innerHTML='';
+  if(s==='idle'){
+    document.getElementById('msub').textContent='Not currently heating.';
+    mtime.style.display='block'; resetTime();
+    mact.innerHTML='<button class="btn btn-gold" onclick="startHeat()">🔥 Start Heating</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>';
+  } else if(s==='heating'){
+    document.getElementById('msub').textContent='Currently heating.';
+    info.innerHTML=irow('🕐','Started at',ft(b.startMs))+irow('⏱️','Elapsed','<span id="mel">'+fel(Date.now()-b.startMs)+'</span>')+irow('✅','Remove at',ft(b.startMs+HEAT_MS))+irow('⏳','Remaining','<span id="mrem">'+ftc(HEAT_MS-(Date.now()-b.startMs))+'</span>');
+    mact.innerHTML='<button class="btn btn-red" onclick="markDone()">✅ Mark as Removed</button><button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+  } else {
+    document.getElementById('msub').textContent='Should have been removed already!';
+    info.innerHTML=irow('🕐','Started at',ft(b.startMs))+irow('⚠️','Should remove at',ft(b.startMs+HEAT_MS))+irow('⏰','Overdue by','<span id="mov" style="color:var(--red)">'+fel((Date.now()-b.startMs)-HEAT_MS)+'</span>');
+    mact.innerHTML='<button class="btn btn-red" onclick="markDone()">✅ Mark as Removed</button><button class="btn btn-ghost" onclick="closeModal()">Close</button>';
   }
+  document.getElementById('modal-backdrop').classList.add('open');
+}
 
-  // â”€â”€ History page â”€â”€
-  function fmtDate(ms) {
-    return new Date(ms).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' });
-  }
+function closeModal() { document.getElementById('modal-backdrop').classList.remove('open'); selId=null; }
 
-  function fmtDuration(ms) {
-    const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000);
-    return m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m ${s}s`;
-  }
+function resetTime() {
+  minsAgo=0;
+  document.querySelectorAll('.tbtn').forEach(function(b){b.classList.toggle('sel',b.dataset.m==='0');});
+  document.getElementById('cwrap').classList.remove('show');
+  document.getElementById('cmin').value='';
+}
 
-  function buildHistory() {
-    const page = document.getElementById('page-history');
+function startHeat() {
+  if(!selId) return;
+  var ago=minsAgo;
+  if(document.getElementById('cwrap').classList.contains('show')){var v=parseInt(document.getElementById('cmin').value,10);ago=isNaN(v)?0:Math.min(v,59);}
+  bats[selId]={status:'heating',startMs:Date.now()-ago*60000};
+  persist(); closeModal(); tick();
+}
 
-    if (heatLog.length === 0) {
-      page.innerHTML = `
-        <div class="history-empty">
-          <div class="big-icon">ðŸ•</div>
-          <p>No heating sessions recorded yet.<br>Remove a battery from heat to log it here.</p>
-        </div>`;
-      return;
-    }
+function markDone() {
+  if(!selId) return;
+  var b=bats[selId],end=Date.now(),over=status(selId)==='overdue';
+  heatLog.push({bid:selId,startMs:b.startMs,endMs:end,overdue:over});
+  persistLog();
+  bats[selId]={status:'idle',startMs:null}; alerted[selId]=false;
+  persist(); closeModal(); tick();
+}
 
-    // Group by date, newest first
-    const groups = {};
-    [...history].reverse().forEach(entry => {
-      const dateKey = fmtDate(entry.endMs);
-      if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(entry);
-    });
+document.getElementById('trow').addEventListener('click',function(e){
+  var btn=e.target.closest('.tbtn'); if(!btn) return;
+  document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('sel');}); btn.classList.add('sel');
+  var v=btn.dataset.m, cw=document.getElementById('cwrap');
+  if(v==='custom'){cw.classList.add('show');minsAgo=0;}else{cw.classList.remove('show');minsAgo=parseInt(v,10);}
+});
 
-    let html = `<div class="history-toolbar">
-      <span class="history-count">${heatLog.length} session${heatLog.length!==1?'s':''}</span>
-      <button class="btn-clear" onclick="clearHistory()">Clear All</button>
-    </div>`;
+document.getElementById('modal-backdrop').addEventListener('click',function(e){if(e.target===document.getElementById('modal-backdrop'))closeModal();});
 
-    for (const [date, entries] of Object.entries(groups)) {
-      html += `<div class="history-date-group"><div class="history-date-label">${date}</div>`;
-      for (const e of entries) {
-        const dur = fmtDuration(e.endMs - e.startMs);
-        const tag = e.overdue
-          ? `<span class="history-tag overdue">Overdue</span>`
-          : `<span class="history-tag ok">On Time</span>`;
-        html += `
-          <div class="history-entry${e.overdue?' was-overdue':''}">
-            <div class="history-badge">${e.bid.split('-')[1]}</div>
-            <div class="history-main">
-              <div class="history-times">${fmtTime(e.startMs)} â†’ ${fmtTime(e.endMs)}</div>
-              <div class="history-meta">
-                <span class="history-duration">Duration: ${dur}</span>
-                ${tag}
-              </div>
-            </div>
-          </div>`;
-      }
-      html += `</div>`;
-    }
+document.getElementById('filter-row').addEventListener('click',function(e){
+  var btn=e.target.closest('.filter-btn'); if(!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');}); btn.classList.add('active');
+  curFilter=btn.dataset.filter; buildGrid();
+});
 
-    page.innerHTML = html;
-  }
+document.getElementById('add-input').addEventListener('keydown',function(e){if(e.key==='Enter')addBattery();});
 
-  function clearHistory() {
-    if (!confirm('Clear all heating history?')) return;
-    heatLog = [];
-    saveHistory();
-    buildHistory();
-  }
+setInterval(function(){
+  if(!selId) return; var b=bats[selId]; if(!b||b.status!=='heating') return;
+  var el=Date.now()-b.startMs,rem=HEAT_MS-el;
+  var re=document.getElementById('mrem'),me=document.getElementById('mel'),mo=document.getElementById('mov');
+  if(re)re.textContent=ftc(rem); if(me)me.textContent=fel(el); if(mo)mo.textContent=fel(Math.abs(rem));
+},1000);
 
-  init();
-  tick();
-  setInterval(tick, 1000);
+function switchTab(page) {
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('tab-'+page).classList.add('active');
+  if(page==='history') buildHistory();
+  if(page==='manage') buildManage();
+}
+
+init(); tick(); setInterval(tick,1000);
 </script>
 </body>
 </html>
-
-
