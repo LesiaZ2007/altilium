@@ -4,23 +4,37 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>6328 Battery Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --orange: #F97316;
-      --orange-dark: #C2410C;
-      --orange-glow: rgba(249, 115, 22, 0.3);
-      --bg: #0A0A0A;
-      --surface: #141414;
-      --surface2: #1E1E1E;
-      --border: #2A2A2A;
-      --text: #F5F5F5;
-      --text-muted: #888;
-      --green: #22C55E;
-      --green-dim: rgba(34, 197, 94, 0.15);
-      --red: #EF4444;
-      --red-dim: rgba(239, 68, 68, 0.15);
-      --yellow: #EAB308;
-      --yellow-dim: rgba(234, 179, 8, 0.15);
+      /* Official 6328 Brand Colors */
+      --gold:       #EFAB28;
+      --gold-dim:   rgba(239, 171, 40, 0.18);
+      --gold-glow:  rgba(239, 171, 40, 0.35);
+      --cream:      #F4F4EE;
+      --blue-mid:   #446CE3;
+      --blue-dark:  #2F4E94;
+      --blue-deeper:#162F65;
+      --navy:       #151D3B;
+
+      /* Semantic */
+      --bg:         var(--navy);
+      --surface:    #1A2340;
+      --surface2:   #1F2D52;
+      --border:     #2F4E94;
+      --border-dim: rgba(47, 78, 148, 0.5);
+      --text:       var(--cream);
+      --text-muted: #7A8DBF;
+
+      /* Status colors */
+      --green:      #22C55E;
+      --green-dim:  rgba(34, 197, 94, 0.15);
+      --red:        #EF4444;
+      --red-dim:    rgba(239, 68, 68, 0.15);
+      --warn:       var(--gold);
+      --warn-dim:   var(--gold-dim);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,15 +42,16 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Barlow', 'Helvetica Neue', Helvetica, sans-serif;
       min-height: 100dvh;
       overflow-x: hidden;
     }
 
+    /* ── Header ── */
     header {
       background: var(--surface);
-      border-bottom: 2px solid var(--orange);
-      padding: 14px 20px;
+      border-bottom: 2px solid var(--gold);
+      padding: 12px 18px;
       display: flex;
       align-items: center;
       gap: 14px;
@@ -45,45 +60,41 @@
       z-index: 100;
     }
 
-    .logo {
-      width: 42px;
-      height: 42px;
-      background: var(--orange);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-size: 15px;
-      color: #000;
-      letter-spacing: -0.5px;
+    .logo-mark {
+      width: 44px;
+      height: 44px;
       flex-shrink: 0;
     }
 
     .header-text h1 {
-      font-size: 18px;
-      font-weight: 700;
-      line-height: 1.2;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      line-height: 1.1;
+      color: var(--cream);
     }
 
     .header-text span {
-      font-size: 12px;
-      color: var(--orange);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px;
       font-weight: 600;
+      color: var(--gold);
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
     }
 
+    /* ── Stats bar ── */
     .stats-bar {
       display: flex;
-      gap: 10px;
-      padding: 12px 16px;
+      gap: 8px;
+      padding: 10px 14px;
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border-dim);
       overflow-x: auto;
       scrollbar-width: none;
     }
-
     .stats-bar::-webkit-scrollbar { display: none; }
 
     .stat-chip {
@@ -91,37 +102,67 @@
       align-items: center;
       gap: 6px;
       background: var(--surface2);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-dim);
       border-radius: 20px;
-      padding: 6px 12px;
+      padding: 5px 12px;
       white-space: nowrap;
+      font-family: 'Barlow Condensed', sans-serif;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text);
     }
 
-    .stat-chip .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-idle    { background: var(--text-muted); }
+    .dot-heating { background: var(--gold); }
+    .dot-ready   { background: var(--red); }
+
+    /* ── Filter row ── */
+    .filter-row {
+      display: flex;
+      gap: 7px;
+      padding: 10px 14px 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border-dim);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.12s;
+    }
+    .filter-btn.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--navy);
     }
 
-    .dot-idle { background: var(--text-muted); }
-    .dot-heating { background: var(--yellow); }
-    .dot-ready { background: var(--green); }
-    .dot-overdue { background: var(--red); }
-
+    /* ── Battery grid ── */
     .grid-container {
-      padding: 16px;
+      padding: 12px 14px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 9px;
     }
 
     .battery-card {
       background: var(--surface);
-      border: 1.5px solid var(--border);
+      border: 1.5px solid var(--border-dim);
       border-radius: 12px;
-      padding: 14px 12px 12px;
+      padding: 13px 12px 11px;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s, transform 0.1s;
       user-select: none;
@@ -129,132 +170,124 @@
       position: relative;
       overflow: hidden;
     }
-
     .battery-card:active { transform: scale(0.96); }
 
-    .battery-card.state-idle:hover { border-color: var(--orange); }
+    .battery-card.state-idle:hover  { border-color: var(--blue-mid); }
 
     .battery-card.state-heating {
-      border-color: var(--yellow);
-      background: var(--yellow-dim);
+      border-color: var(--gold);
+      background: var(--warn-dim);
     }
-
-    .battery-card.state-ready {
-      border-color: var(--green);
-      background: var(--green-dim);
-    }
-
     .battery-card.state-overdue {
       border-color: var(--red);
       background: var(--red-dim);
-      animation: pulse-red 1.5s ease-in-out infinite;
+      animation: pulse-red 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse-red {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+      50%      { box-shadow: 0 0 14px 3px rgba(239,68,68,0.4); }
     }
 
-    @keyframes pulse-red {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-      50% { box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.35); }
+    .battery-icon {
+      position: absolute;
+      top: 9px;
+      right: 10px;
+      font-size: 16px;
+      opacity: 0.55;
     }
 
     .battery-label {
-      font-size: 11px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px;
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 2px;
+      letter-spacing: 1px;
+      margin-bottom: 1px;
     }
 
     .battery-num {
-      font-size: 20px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 22px;
       font-weight: 800;
-      color: var(--text);
+      color: var(--cream);
       line-height: 1;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
     }
-
-    .battery-card.state-heating .battery-num { color: var(--yellow); }
-    .battery-card.state-ready .battery-num { color: var(--green); }
+    .battery-card.state-heating .battery-num { color: var(--gold); }
     .battery-card.state-overdue .battery-num { color: var(--red); }
 
     .battery-status {
+      font-family: 'Barlow Condensed', sans-serif;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
       color: var(--text-muted);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
-
-    .battery-card.state-heating .battery-status { color: var(--yellow); }
-    .battery-card.state-ready .battery-status { color: var(--green); }
+    .battery-card.state-heating .battery-status { color: var(--gold); }
     .battery-card.state-overdue .battery-status { color: var(--red); }
 
     .battery-timer {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: var(--text);
     }
-
-    .battery-card.state-idle .battery-timer { color: var(--text-muted); font-weight: 400; font-size: 12px; }
-
-    .battery-icon {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 18px;
-      opacity: 0.6;
+    .battery-card.state-idle .battery-timer {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 12px;
     }
 
-    /* Modal */
+    /* ── Modal ── */
     .modal-backdrop {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.75);
+      background: rgba(10, 13, 30, 0.82);
       z-index: 200;
       align-items: flex-end;
       justify-content: center;
-      padding: 0;
     }
-
-    .modal-backdrop.open {
-      display: flex;
-    }
+    .modal-backdrop.open { display: flex; }
 
     .modal {
       background: var(--surface);
       border: 1.5px solid var(--border);
       border-radius: 20px 20px 0 0;
-      padding: 24px 24px 36px;
+      padding: 22px 22px 36px;
       width: 100%;
       max-width: 500px;
       animation: slide-up 0.22s ease-out;
     }
-
     @keyframes slide-up {
       from { transform: translateY(40px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+      to   { transform: translateY(0);    opacity: 1; }
     }
 
     .modal-handle {
-      width: 40px;
-      height: 4px;
+      width: 36px; height: 4px;
       background: var(--border);
       border-radius: 2px;
-      margin: 0 auto 20px;
+      margin: 0 auto 18px;
     }
 
     .modal-title {
-      font-size: 22px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 26px;
       font-weight: 800;
-      margin-bottom: 4px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 2px;
     }
-
     .modal-subtitle {
       font-size: 13px;
       color: var(--text-muted);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .modal-info-row {
@@ -262,77 +295,119 @@
       align-items: center;
       gap: 10px;
       background: var(--surface2);
+      border: 1px solid var(--border-dim);
       border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 10px;
+      padding: 13px;
+      margin-bottom: 8px;
     }
+    .modal-info-row .info-icon { font-size: 18px; }
+    .modal-info-row .info-text { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .modal-info-row .info-val  { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; margin-top: 1px; color: var(--cream); }
 
-    .modal-info-row .info-icon { font-size: 20px; }
-
-    .modal-info-row .info-text { font-size: 13px; color: var(--text-muted); }
-    .modal-info-row .info-val { font-size: 15px; font-weight: 700; margin-top: 1px; }
-
+    /* ── Buttons ── */
     .btn-row {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-top: 20px;
+      gap: 9px;
+      margin-top: 18px;
     }
-
     .btn {
-      padding: 16px;
+      padding: 15px;
       border-radius: 12px;
-      font-size: 16px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 17px;
       font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
       border: none;
       cursor: pointer;
       width: 100%;
-      transition: opacity 0.15s, transform 0.1s;
+      transition: opacity 0.12s, transform 0.1s;
       -webkit-tap-highlight-color: transparent;
     }
-
     .btn:active { transform: scale(0.97); }
 
-    .btn-orange {
-      background: var(--orange);
-      color: #000;
+    .btn-gold {
+      background: var(--gold);
+      color: var(--navy);
     }
-
-    .btn-orange:hover { opacity: 0.9; }
+    .btn-gold:hover { opacity: 0.9; }
 
     .btn-ghost {
       background: var(--surface2);
       color: var(--text);
-      border: 1.5px solid var(--border);
+      border: 1.5px solid var(--border-dim);
     }
-
     .btn-red {
       background: var(--red-dim);
       color: var(--red);
       border: 1.5px solid var(--red);
     }
 
-    .btn-green {
-      background: var(--green-dim);
-      color: var(--green);
-      border: 1.5px solid var(--green);
-    }
+    /* ── Time preset ── */
+    .time-input-section { margin-bottom: 18px; }
 
-    .section-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+    .time-input-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       color: var(--text-muted);
-      padding: 0 16px;
-      margin-top: 8px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
+    .time-input-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .time-btn {
+      flex: 1;
+      min-width: 60px;
+      padding: 12px 6px;
+      border-radius: 10px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border: 1.5px solid var(--border-dim);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .time-btn.selected {
+      background: var(--gold-dim);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .time-btn:active { opacity: 0.7; }
 
-    /* Notification toast */
+    #custom-minutes-wrap { margin-top: 9px; display: none; }
+    #custom-minutes-wrap.visible { display: block; }
+    #custom-minutes {
+      width: 100%;
+      padding: 13px;
+      border-radius: 10px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border-dim);
+      color: var(--cream);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    #custom-minutes:focus { border-color: var(--gold); }
+
+    /* ── Toast ── */
     .toast-container {
       position: fixed;
-      top: 80px;
+      top: 76px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 300;
@@ -340,141 +415,60 @@
       flex-direction: column;
       gap: 8px;
       pointer-events: none;
-      width: calc(100% - 32px);
+      width: calc(100% - 28px);
       max-width: 420px;
     }
-
     .toast {
       background: var(--surface);
       border: 1.5px solid var(--red);
       border-radius: 12px;
-      padding: 14px 16px;
+      padding: 13px 16px;
       display: flex;
       align-items: center;
       gap: 10px;
-      animation: toast-in 0.25s ease-out;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      animation: toast-in 0.22s ease-out;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.6);
     }
-
-    .toast-icon { font-size: 20px; }
-
-    .toast-text { font-size: 14px; font-weight: 600; }
-
-    @keyframes toast-in {
-      from { transform: translateY(-16px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 48px 24px;
-      color: var(--text-muted);
-    }
-
-    .empty-state .big-icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-state p { font-size: 15px; }
-
-    /* Time input modal */
-    .time-input-section {
-      margin-bottom: 20px;
-    }
-
-    .time-input-label {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-
-    .time-input-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .time-btn {
-      flex: 1;
-      padding: 14px 8px;
-      border-radius: 10px;
+    .toast-text {
+      font-family: 'Barlow Condensed', sans-serif;
       font-size: 15px;
       font-weight: 700;
-      border: 1.5px solid var(--border);
-      background: var(--surface2);
-      color: var(--text);
-      cursor: pointer;
-      transition: background 0.12s, border-color 0.12s;
-      -webkit-tap-highlight-color: transparent;
-      text-align: center;
+      letter-spacing: 0.3px;
+      color: var(--cream);
     }
-
-    .time-btn.selected {
-      background: var(--orange-glow);
-      border-color: var(--orange);
-      color: var(--orange);
-    }
-
-    .time-btn:active { opacity: 0.7; }
-
-    #custom-minutes-wrap {
-      margin-top: 10px;
-      display: none;
-    }
-
-    #custom-minutes-wrap.visible { display: block; }
-
-    #custom-minutes {
-      width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      color: var(--text);
-      font-size: 16px;
-      font-weight: 700;
-      text-align: center;
-      outline: none;
-      -webkit-appearance: none;
-    }
-
-    #custom-minutes:focus { border-color: var(--orange); }
-
-    .filter-row {
-      display: flex;
-      gap: 8px;
-      padding: 10px 16px 4px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .filter-row::-webkit-scrollbar { display: none; }
-
-    .filter-btn {
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1.5px solid var(--border);
-      background: var(--surface);
-      color: var(--text-muted);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .filter-btn.active {
-      background: var(--orange);
-      border-color: var(--orange);
-      color: #000;
+    @keyframes toast-in {
+      from { transform: translateY(-14px); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">6328</div>
+  <!-- Inline gear SVG approximating the 6328 logo mark -->
+  <svg class="logo-mark" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="22" cy="22" r="21" fill="#162F65" stroke="#EFAB28" stroke-width="1.5"/>
+    <!-- gear teeth (simplified) -->
+    <g fill="#151D3B" stroke="#EFAB28" stroke-width="0.8">
+      <rect x="19.5" y="1" width="5" height="5" rx="1"/>
+      <rect x="19.5" y="38" width="5" height="5" rx="1"/>
+      <rect x="1" y="19.5" width="5" height="5" rx="1"/>
+      <rect x="38" y="19.5" width="5" height="5" rx="1"/>
+      <rect x="7.3" y="5.8" width="5" height="5" rx="1" transform="rotate(-45 7.3 5.8)"/>
+      <rect x="31.7" y="5.8" width="5" height="5" rx="1" transform="rotate(45 36.7 5.8)"/>
+      <rect x="7.3" y="33.2" width="5" height="5" rx="1" transform="rotate(45 7.3 33.2)"/>
+      <rect x="31.7" y="33.2" width="5" height="5" rx="1" transform="rotate(-45 31.7 33.2)"/>
+    </g>
+    <circle cx="22" cy="22" r="14" fill="#162F65" stroke="#2F4E94" stroke-width="1"/>
+    <!-- crescent moon arc -->
+    <path d="M 16 22 A 8 8 0 0 1 28 16 A 11 11 0 0 0 16 22 Z" fill="#EFAB28"/>
+    <path d="M 16 22 A 8 8 0 0 0 28 28 A 11 11 0 0 1 16 22 Z" fill="#EFAB28" opacity="0.6"/>
+    <!-- 6328 text -->
+    <text x="22" y="25.5" text-anchor="middle" font-family="'Barlow Condensed',sans-serif" font-size="9" font-weight="800" fill="#F4F4EE" letter-spacing="0.5">6328</text>
+  </svg>
   <div class="header-text">
     <h1>Battery Tracker</h1>
-    <span>Mechanical Advantage</span>
+    <span>Mechanical Advantage · FRC 6328</span>
   </div>
 </header>
 
@@ -483,21 +477,19 @@
 <div class="filter-row" id="filter-row">
   <button class="filter-btn active" data-filter="all">All</button>
   <button class="filter-btn" data-filter="heating">Heating</button>
-  <button class="filter-btn" data-filter="ready">Ready to Remove</button>
+  <button class="filter-btn" data-filter="ready">Remove Now</button>
   <button class="filter-btn" data-filter="idle">Idle</button>
 </div>
 
 <div class="grid-container" id="grid"></div>
 
-<!-- Battery Action Modal -->
+<!-- Modal -->
 <div class="modal-backdrop" id="modal-backdrop">
-  <div class="modal" id="modal">
+  <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-title"></div>
     <div class="modal-subtitle" id="modal-subtitle"></div>
-
     <div id="modal-info-section"></div>
-
     <div id="modal-time-section" class="time-input-section" style="display:none">
       <div class="time-input-label">How long ago did heating start?</div>
       <div class="time-input-row" id="time-preset-row">
@@ -511,163 +503,128 @@
         <input type="number" id="custom-minutes" min="0" max="59" placeholder="Minutes ago" inputmode="numeric" />
       </div>
     </div>
-
     <div class="btn-row" id="modal-actions"></div>
   </div>
 </div>
 
-<!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
 <script>
   const TOTAL = 30;
-  const HEAT_DURATION_MS = 60 * 60 * 1000; // 1 hour
+  const HEAT_MS = 60 * 60 * 1000;
 
-  // State: { [id]: { status: 'idle'|'heating'|'done', startMs: number|null } }
   let batteries = {};
   let currentFilter = 'all';
-  let selectedBatteryId = null;
-  let selectedMinutesAgo = 0;
-  let tickInterval = null;
-  let toastTimers = {};
+  let selectedId = null;
+  let selectedMinsAgo = 0;
+  let toastFired = {};
 
-  function batteryId(n) {
-    return '2026-' + String(n).padStart(3, '0');
-  }
+  function id(n) { return '2026-' + String(n).padStart(3, '0'); }
 
-  function initState() {
-    const saved = localStorage.getItem('battery-state-6328');
-    if (saved) {
-      try { batteries = JSON.parse(saved); } catch(e) { batteries = {}; }
-    }
+  function init() {
+    const saved = localStorage.getItem('ma6328-batteries');
+    if (saved) { try { batteries = JSON.parse(saved); } catch(e) {} }
     for (let i = 1; i <= TOTAL; i++) {
-      const id = batteryId(i);
-      if (!batteries[id]) batteries[id] = { status: 'idle', startMs: null };
+      if (!batteries[id(i)]) batteries[id(i)] = { status: 'idle', startMs: null };
     }
   }
 
-  function saveState() {
-    localStorage.setItem('battery-state-6328', JSON.stringify(batteries));
-  }
+  function save() { localStorage.setItem('ma6328-batteries', JSON.stringify(batteries)); }
 
-  function getEffectiveStatus(id) {
-    const b = batteries[id];
+  function effectiveStatus(bid) {
+    const b = batteries[bid];
     if (b.status !== 'heating') return b.status;
-    const elapsed = Date.now() - b.startMs;
-    if (elapsed >= HEAT_DURATION_MS) return 'overdue';
-    return 'heating';
+    return (Date.now() - b.startMs >= HEAT_MS) ? 'overdue' : 'heating';
   }
 
-  function formatCountdown(ms) {
-    const total = Math.max(0, ms);
-    const m = Math.floor(total / 60000);
-    const s = Math.floor((total % 60000) / 1000);
-    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  function fmtCountdown(ms) {
+    const t = Math.max(0, ms);
+    return `${String(Math.floor(t/60000)).padStart(2,'0')}:${String(Math.floor((t%60000)/1000)).padStart(2,'0')}`;
   }
 
-  function formatElapsed(ms) {
-    const total = Math.abs(ms);
-    const m = Math.floor(total / 60000);
-    const s = Math.floor((total % 60000) / 1000);
-    if (m >= 60) {
-      const h = Math.floor(m / 60), rm = m % 60;
-      return `${h}h ${rm}m`;
-    }
-    return `${m}m ${s}s`;
+  function fmtElapsed(ms) {
+    const t = Math.abs(ms);
+    const m = Math.floor(t/60000), s = Math.floor((t%60000)/1000);
+    return m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m ${s}s`;
   }
 
-  function formatTime(ms) {
-    const d = new Date(ms);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  function fmtTime(ms) {
+    return new Date(ms).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   }
 
   function buildStats() {
-    let idle = 0, heating = 0, ready = 0, overdue = 0;
-    for (let i = 1; i <= TOTAL; i++) {
-      const status = getEffectiveStatus(batteryId(i));
-      if (status === 'idle') idle++;
-      else if (status === 'heating') heating++;
-      else if (status === 'overdue') overdue++;
+    let idle=0, heating=0, overdue=0;
+    for (let i=1;i<=TOTAL;i++) {
+      const s = effectiveStatus(id(i));
+      if (s==='idle') idle++;
+      else if (s==='heating') heating++;
+      else if (s==='overdue') overdue++;
     }
-    ready = overdue;
-
-    const bar = document.getElementById('stats-bar');
-    bar.innerHTML = `
+    document.getElementById('stats-bar').innerHTML = `
       <div class="stat-chip"><div class="dot dot-idle"></div>${idle} Idle</div>
       <div class="stat-chip"><div class="dot dot-heating"></div>${heating} Heating</div>
-      <div class="stat-chip"><div class="dot dot-ready"></div>${ready} Ready to Remove</div>
+      <div class="stat-chip"><div class="dot dot-ready"></div>${overdue} Remove Now</div>
     `;
   }
 
   function buildGrid() {
     const grid = document.getElementById('grid');
     const existing = {};
-    grid.querySelectorAll('.battery-card').forEach(el => { existing[el.dataset.id] = el; });
+    grid.querySelectorAll('.battery-card').forEach(el => existing[el.dataset.id] = el);
 
-    for (let i = 1; i <= TOTAL; i++) {
-      const id = batteryId(i);
-      const b = batteries[id];
-      const status = getEffectiveStatus(id);
+    for (let i=1;i<=TOTAL;i++) {
+      const bid = id(i);
+      const b = batteries[bid];
+      const status = effectiveStatus(bid);
+      const show = currentFilter==='all'
+        || (currentFilter==='heating' && status==='heating')
+        || (currentFilter==='ready'   && status==='overdue')
+        || (currentFilter==='idle'    && status==='idle');
 
-      // Filter
-      let show = true;
-      if (currentFilter === 'heating' && status !== 'heating') show = false;
-      if (currentFilter === 'ready' && status !== 'overdue') show = false;
-      if (currentFilter === 'idle' && status !== 'idle') show = false;
-
-      let card = existing[id];
+      let card = existing[bid];
       if (!card) {
         card = document.createElement('div');
         card.className = 'battery-card';
-        card.dataset.id = id;
-        card.addEventListener('click', () => openModal(id));
+        card.dataset.id = bid;
+        card.addEventListener('click', () => openModal(bid));
         grid.appendChild(card);
       }
 
       card.style.display = show ? '' : 'none';
-      card.className = `battery-card state-${status === 'overdue' ? 'overdue' : status}`;
-      card.dataset.id = id;
+      card.className = `battery-card state-${status==='overdue'?'overdue':status}`;
 
-      let statusText = '', timerText = '', icon = '🔋';
-      if (status === 'idle') {
-        statusText = 'Idle';
-        timerText = 'Tap to heat';
-        icon = '🔋';
-      } else if (status === 'heating') {
-        const remaining = HEAT_DURATION_MS - (Date.now() - b.startMs);
-        statusText = 'Heating';
-        timerText = formatCountdown(remaining) + ' left';
-        icon = '🔥';
-      } else if (status === 'overdue') {
-        const over = (Date.now() - b.startMs) - HEAT_DURATION_MS;
-        statusText = 'REMOVE NOW';
-        timerText = formatElapsed(over) + ' overdue';
-        icon = '⚠️';
+      let statusText, timerText, icon;
+      if (status==='idle') {
+        statusText='Idle'; timerText='Tap to heat'; icon='🔋';
+      } else if (status==='heating') {
+        const rem = HEAT_MS - (Date.now() - b.startMs);
+        statusText='Heating'; timerText=fmtCountdown(rem)+' left'; icon='🔥';
+      } else {
+        const over = (Date.now()-b.startMs)-HEAT_MS;
+        statusText='REMOVE NOW'; timerText=fmtElapsed(over)+' overdue'; icon='⚠️';
       }
 
       card.innerHTML = `
         <div class="battery-icon">${icon}</div>
         <div class="battery-label">Battery</div>
-        <div class="battery-num">${id.split('-')[1]}</div>
+        <div class="battery-num">${bid.split('-')[1]}</div>
         <div class="battery-status">${statusText}</div>
         <div class="battery-timer">${timerText}</div>
       `;
     }
   }
 
-  function checkOverdueNotifications() {
-    for (let i = 1; i <= TOTAL; i++) {
-      const id = batteryId(i);
-      const b = batteries[id];
-      if (b.status === 'heating') {
-        const status = getEffectiveStatus(id);
-        if (status === 'overdue' && !toastTimers[id + '_notified']) {
-          toastTimers[id + '_notified'] = true;
-          showToast(`⚠️ Battery ${id} is ready — remove from heat!`);
+  function checkNotifications() {
+    for (let i=1;i<=TOTAL;i++) {
+      const bid = id(i);
+      const b = batteries[bid];
+      if (b.status==='heating') {
+        const status = effectiveStatus(bid);
+        if (status==='overdue' && !toastFired[bid]) {
+          toastFired[bid] = true;
+          showToast(`⚠️ Battery ${bid} is ready — remove from heat!`);
         }
-        if (status === 'heating') {
-          toastTimers[id + '_notified'] = false;
-        }
+        if (status==='heating') toastFired[bid] = false;
       }
     }
   }
@@ -675,190 +632,138 @@
   function showToast(msg) {
     const tc = document.getElementById('toast-container');
     const t = document.createElement('div');
-    t.className = 'toast';
-    t.innerHTML = `<span class="toast-text">${msg}</span>`;
+    t.className='toast';
+    t.innerHTML=`<span class="toast-text">${msg}</span>`;
     tc.appendChild(t);
-    setTimeout(() => { t.style.transition = 'opacity 0.4s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 5000);
+    setTimeout(()=>{ t.style.transition='opacity 0.4s'; t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 5000);
   }
 
-  function tick() {
-    buildStats();
-    buildGrid();
-    checkOverdueNotifications();
-  }
+  function tick() { buildStats(); buildGrid(); checkNotifications(); }
 
-  // ---- Modal ----
+  // ── Modal ──
+  function openModal(bid) {
+    selectedId = bid;
+    selectedMinsAgo = 0;
+    const b = batteries[bid];
+    const status = effectiveStatus(bid);
 
-  function openModal(id) {
-    selectedBatteryId = id;
-    selectedMinutesAgo = 0;
-    const b = batteries[id];
-    const status = getEffectiveStatus(id);
-
-    document.getElementById('modal-title').textContent = `Battery ${id}`;
-
-    const infoSection = document.getElementById('modal-info-section');
-    const timeSection = document.getElementById('modal-time-section');
+    document.getElementById('modal-title').textContent = `Battery ${bid}`;
+    const infoSec = document.getElementById('modal-info-section');
+    const timeSec = document.getElementById('modal-time-section');
     const actions = document.getElementById('modal-actions');
+    infoSec.innerHTML=''; timeSec.style.display='none'; actions.innerHTML='';
 
-    infoSection.innerHTML = '';
-    timeSection.style.display = 'none';
-    actions.innerHTML = '';
-
-    if (status === 'idle') {
+    if (status==='idle') {
       document.getElementById('modal-subtitle').textContent = 'This battery is not currently heating.';
-      timeSection.style.display = 'block';
+      timeSec.style.display='block';
       resetTimePresets();
-
-      actions.innerHTML = `
-        <button class="btn btn-orange" onclick="startHeating()">🔥 Start Heating</button>
+      actions.innerHTML=`
+        <button class="btn btn-gold" onclick="startHeating()">🔥 Start Heating</button>
         <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       `;
-    } else if (status === 'heating') {
-      const remaining = HEAT_DURATION_MS - (Date.now() - b.startMs);
-      const elapsed = Date.now() - b.startMs;
-      document.getElementById('modal-subtitle').textContent = 'Currently heating — check the timer below.';
-
-      infoSection.innerHTML = `
-        <div class="modal-info-row">
-          <span class="info-icon">🕐</span>
-          <div><div class="info-text">Started at</div><div class="info-val">${formatTime(b.startMs)}</div></div>
-        </div>
-        <div class="modal-info-row">
-          <span class="info-icon">⏱️</span>
-          <div><div class="info-text">Time elapsed</div><div class="info-val" id="modal-elapsed">${formatElapsed(elapsed)}</div></div>
-        </div>
-        <div class="modal-info-row">
-          <span class="info-icon">✅</span>
-          <div><div class="info-text">Remove at</div><div class="info-val">${formatTime(b.startMs + HEAT_DURATION_MS)}</div></div>
-        </div>
-        <div class="modal-info-row">
-          <span class="info-icon">⏳</span>
-          <div><div class="info-text">Time remaining</div><div class="info-val" id="modal-remaining">${formatCountdown(remaining)}</div></div>
-        </div>
+    } else if (status==='heating') {
+      const rem = HEAT_MS-(Date.now()-b.startMs);
+      const elapsed = Date.now()-b.startMs;
+      document.getElementById('modal-subtitle').textContent = 'Currently heating — check the timer.';
+      infoSec.innerHTML=`
+        <div class="modal-info-row"><span class="info-icon">🕐</span><div><div class="info-text">Started at</div><div class="info-val">${fmtTime(b.startMs)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">⏱️</span><div><div class="info-text">Time elapsed</div><div class="info-val" id="modal-elapsed">${fmtElapsed(elapsed)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">✅</span><div><div class="info-text">Remove at</div><div class="info-val">${fmtTime(b.startMs+HEAT_MS)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">⏳</span><div><div class="info-text">Time remaining</div><div class="info-val" id="modal-remaining">${fmtCountdown(rem)}</div></div></div>
       `;
-
-      actions.innerHTML = `
+      actions.innerHTML=`
         <button class="btn btn-red" onclick="removeFromHeat()">✅ Mark as Removed</button>
         <button class="btn btn-ghost" onclick="closeModal()">Close</button>
       `;
-    } else if (status === 'overdue') {
-      const over = (Date.now() - b.startMs) - HEAT_DURATION_MS;
+    } else {
+      const over = (Date.now()-b.startMs)-HEAT_MS;
       document.getElementById('modal-subtitle').textContent = 'This battery should have been removed already!';
-
-      infoSection.innerHTML = `
-        <div class="modal-info-row">
-          <span class="info-icon">🕐</span>
-          <div><div class="info-text">Started at</div><div class="info-val">${formatTime(b.startMs)}</div></div>
-        </div>
-        <div class="modal-info-row">
-          <span class="info-icon">⚠️</span>
-          <div><div class="info-text">Should have removed at</div><div class="info-val">${formatTime(b.startMs + HEAT_DURATION_MS)}</div></div>
-        </div>
-        <div class="modal-info-row">
-          <span class="info-icon">⏰</span>
-          <div><div class="info-text">Overdue by</div><div class="info-val" id="modal-overdue-by" style="color:var(--red)">${formatElapsed(over)}</div></div>
-        </div>
+      infoSec.innerHTML=`
+        <div class="modal-info-row"><span class="info-icon">🕐</span><div><div class="info-text">Started at</div><div class="info-val">${fmtTime(b.startMs)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">⚠️</span><div><div class="info-text">Should have removed at</div><div class="info-val">${fmtTime(b.startMs+HEAT_MS)}</div></div></div>
+        <div class="modal-info-row"><span class="info-icon">⏰</span><div><div class="info-text">Overdue by</div><div class="info-val" id="modal-overdue-by" style="color:var(--red)">${fmtElapsed(over)}</div></div></div>
       `;
-
-      actions.innerHTML = `
+      actions.innerHTML=`
         <button class="btn btn-red" onclick="removeFromHeat()">✅ Mark as Removed</button>
         <button class="btn btn-ghost" onclick="closeModal()">Close</button>
       `;
     }
-
     document.getElementById('modal-backdrop').classList.add('open');
   }
 
   function closeModal() {
     document.getElementById('modal-backdrop').classList.remove('open');
-    selectedBatteryId = null;
+    selectedId=null;
   }
 
   function resetTimePresets() {
-    selectedMinutesAgo = 0;
-    document.querySelectorAll('.time-btn').forEach(b => {
-      b.classList.toggle('selected', b.dataset.minutes === '0');
-    });
+    selectedMinsAgo=0;
+    document.querySelectorAll('.time-btn').forEach(b=>b.classList.toggle('selected', b.dataset.minutes==='0'));
     document.getElementById('custom-minutes-wrap').classList.remove('visible');
-    document.getElementById('custom-minutes').value = '';
+    document.getElementById('custom-minutes').value='';
   }
 
   function startHeating() {
-    if (!selectedBatteryId) return;
-    let ago = selectedMinutesAgo;
-    const customWrap = document.getElementById('custom-minutes-wrap');
-    if (customWrap.classList.contains('visible')) {
+    if (!selectedId) return;
+    let ago = selectedMinsAgo;
+    const cw = document.getElementById('custom-minutes-wrap');
+    if (cw.classList.contains('visible')) {
       const v = parseInt(document.getElementById('custom-minutes').value, 10);
       ago = isNaN(v) ? 0 : Math.min(v, 59);
     }
-    const startMs = Date.now() - ago * 60 * 1000;
-    batteries[selectedBatteryId] = { status: 'heating', startMs };
-    saveState();
-    closeModal();
-    tick();
+    batteries[selectedId] = { status:'heating', startMs: Date.now() - ago*60000 };
+    save(); closeModal(); tick();
   }
 
   function removeFromHeat() {
-    if (!selectedBatteryId) return;
-    batteries[selectedBatteryId] = { status: 'idle', startMs: null };
-    toastTimers[selectedBatteryId + '_notified'] = false;
-    saveState();
-    closeModal();
-    tick();
+    if (!selectedId) return;
+    batteries[selectedId] = { status:'idle', startMs:null };
+    toastFired[selectedId] = false;
+    save(); closeModal(); tick();
   }
 
-  // Time preset buttons
-  document.getElementById('time-preset-row').addEventListener('click', (e) => {
+  document.getElementById('time-preset-row').addEventListener('click', e => {
     const btn = e.target.closest('.time-btn');
     if (!btn) return;
-    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('selected'));
     btn.classList.add('selected');
-    const val = btn.dataset.minutes;
-    const customWrap = document.getElementById('custom-minutes-wrap');
-    if (val === 'custom') {
-      customWrap.classList.add('visible');
-      selectedMinutesAgo = 0;
-    } else {
-      customWrap.classList.remove('visible');
-      selectedMinutesAgo = parseInt(val, 10);
-    }
+    const v = btn.dataset.minutes;
+    const cw = document.getElementById('custom-minutes-wrap');
+    if (v==='custom') { cw.classList.add('visible'); selectedMinsAgo=0; }
+    else { cw.classList.remove('visible'); selectedMinsAgo=parseInt(v,10); }
   });
 
-  // Close modal on backdrop click
-  document.getElementById('modal-backdrop').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('modal-backdrop')) closeModal();
+  document.getElementById('modal-backdrop').addEventListener('click', e => {
+    if (e.target===document.getElementById('modal-backdrop')) closeModal();
   });
 
-  // Filter buttons
-  document.getElementById('filter-row').addEventListener('click', (e) => {
+  document.getElementById('filter-row').addEventListener('click', e => {
     const btn = e.target.closest('.filter-btn');
     if (!btn) return;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    currentFilter = btn.dataset.filter;
+    currentFilter=btn.dataset.filter;
     buildGrid();
   });
 
-  // Live update of modal times while open
-  setInterval(() => {
-    if (!selectedBatteryId) return;
-    const b = batteries[selectedBatteryId];
-    if (!b || b.status !== 'heating') return;
-    const elapsed = Date.now() - b.startMs;
-    const remaining = HEAT_DURATION_MS - elapsed;
-    const re = document.getElementById('modal-remaining');
-    const el = document.getElementById('modal-elapsed');
-    const ov = document.getElementById('modal-overdue-by');
-    if (re) re.textContent = formatCountdown(remaining);
-    if (el) el.textContent = formatElapsed(elapsed);
-    if (ov) ov.textContent = formatElapsed(Math.abs(remaining));
+  // Live modal timer updates
+  setInterval(()=>{
+    if (!selectedId) return;
+    const b = batteries[selectedId];
+    if (!b || b.status!=='heating') return;
+    const elapsed = Date.now()-b.startMs;
+    const rem = HEAT_MS-elapsed;
+    const re=document.getElementById('modal-remaining');
+    const el=document.getElementById('modal-elapsed');
+    const ov=document.getElementById('modal-overdue-by');
+    if (re) re.textContent=fmtCountdown(rem);
+    if (el) el.textContent=fmtElapsed(elapsed);
+    if (ov) ov.textContent=fmtElapsed(Math.abs(rem));
   }, 1000);
 
-  // Init
-  initState();
+  init();
   tick();
-  tickInterval = setInterval(tick, 1000);
+  setInterval(tick, 1000);
 </script>
 </body>
 </html>
