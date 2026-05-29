@@ -24,6 +24,7 @@
   --red:       #EF4444;
   --red-dim:   rgba(239,68,68,0.15);
   --green:     #22C55E;
+  --tile:      200px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -95,7 +96,7 @@ header {
 .grid-container {
   padding: 12px 14px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile), 1fr));
   gap: 10px;
 }
 .bcard {
@@ -200,6 +201,19 @@ header {
 .empty p { font-size: 15px; line-height: 1.6; }
 .msec { padding: 14px 14px 6px; }
 .msec-title { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+.size-row { display: flex; gap: 8px; margin-bottom: 20px; }
+.size-opt {
+  flex: 1; padding: 12px 4px; border-radius: 10px;
+  border: 1.5px solid var(--bdim); background: var(--surface);
+  color: var(--muted); cursor: pointer; text-align: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  -webkit-tap-highlight-color: transparent; transition: all 0.12s;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.size-opt .sicon { font-size: 20px; }
+.size-opt.active { border-color: var(--gold); background: var(--gold-dim); color: var(--gold); }
+.size-opt:active { opacity: 0.7; }
 .add-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .add-row input { flex: 1; padding: 13px 14px; border-radius: 10px; background: var(--surface); border: 1.5px solid var(--bdim); color: var(--cream); font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; outline: none; }
 .add-row input:focus { border-color: var(--gold); }
@@ -245,6 +259,13 @@ header {
 
 <div id="page-manage" class="page">
   <div class="msec">
+    <div class="msec-title">Tile Size</div>
+    <div class="size-row" id="size-row">
+      <button class="size-opt" data-size="120" onclick="setTileSize(this)"><span class="sicon">⬛</span>Small</button>
+      <button class="size-opt" data-size="160" onclick="setTileSize(this)"><span class="sicon">🟧</span>Medium</button>
+      <button class="size-opt active" data-size="200" onclick="setTileSize(this)"><span class="sicon">🟠</span>Large</button>
+      <button class="size-opt" data-size="280" onclick="setTileSize(this)"><span class="sicon">🔶</span>XL</button>
+    </div>
     <div class="msec-title">Add Battery</div>
     <div class="add-row">
       <input type="text" id="add-input" placeholder="e.g. 031" maxlength="3" inputmode="numeric">
@@ -538,7 +559,22 @@ function switchTab(page) {
   if(page==='manage') buildManage();
 }
 
-init(); tick(); setInterval(tick,1000);
+function setTileSize(btn) {
+  var size = btn.dataset.size;
+  document.documentElement.style.setProperty('--tile', size+'px');
+  localStorage.setItem('ma-tilesize', size);
+  document.querySelectorAll('.size-opt').forEach(function(b){ b.classList.toggle('active', b===btn); });
+}
+
+function loadTileSize() {
+  var saved = localStorage.getItem('ma-tilesize') || '200';
+  document.documentElement.style.setProperty('--tile', saved+'px');
+  document.querySelectorAll('.size-opt').forEach(function(b){
+    b.classList.toggle('active', b.dataset.size === saved);
+  });
+}
+
+init(); loadTileSize(); tick(); setInterval(tick,1000);
 </script>
 </body>
 </html>
