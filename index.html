@@ -533,6 +533,7 @@ var usageCounts = {};  // { bid: { eventCode: count } }
 var events = [];       // ['overall','mabil',...]
 var curEvent = 'overall';
 var bIds = [];
+var batMeta = {};      // { bid: { type: 'Normal'|'Energizer', notes: '' } }
 var curFilter = 'all';
 var histFilter = 'all'; // 'all' or a battery id
 var selId = null;
@@ -552,6 +553,8 @@ function init() {
   bIds.forEach(function(bid){ if (!bats[bid]) bats[bid] = {status:'idle',startMs:null}; });
   var sh = localStorage.getItem('ma-log');
   if (sh) { try { heatLog = JSON.parse(sh); } catch(e) {} }
+  var sm = localStorage.getItem('ma-batmeta');
+  if (sm) { try { batMeta = JSON.parse(sm); } catch(e) {} }
   var sl = localStorage.getItem('ma-batlogs');
   if (sl) { try { batLogs = JSON.parse(sl); } catch(e) {} }
   var su = localStorage.getItem('ma-usage');
@@ -569,6 +572,7 @@ function persist() {
 }
 function persistLog()   { localStorage.setItem('ma-log',     JSON.stringify(heatLog)); }
 function persistBatLogs(){ localStorage.setItem('ma-batlogs', JSON.stringify(batLogs)); }
+function persistMeta()   { localStorage.setItem('ma-batmeta', JSON.stringify(batMeta)); }
 function persistUsage()  { localStorage.setItem('ma-usage',   JSON.stringify(usageCounts)); }
 function persistEvents() { localStorage.setItem('ma-events',  JSON.stringify(events)); localStorage.setItem('ma-curevent', curEvent); }
 
@@ -638,7 +642,9 @@ function buildGrid() {
       var lastLbl = age < 120*60000 ? '🔥 ' + fel(age) + ' ago' : 'Last: '+ft(lh.endMs);
       lastChip = '<div class="bc-last '+warmClass+'">'+lastLbl+'</div>';
     }
-    card.innerHTML='<div class="bc-icon">'+icon+'</div><div class="bc-lbl">Battery</div><div class="bc-num">'+bid.split('-')[1]+'</div><div class="bc-stat">'+stxt+'</div><div class="bc-time">'+ttxt+'</div>'+lastChip;
+    var meta = batMeta[bid] || {};
+    var typBadge = meta.type ? '<div style="margin-top:6px;display:inline-block;font-family:\'Barlow Condensed\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 7px;border-radius:5px;'+(meta.type==='Energizer'?'background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.4)':'background:rgba(68,108,227,0.12);color:var(--blue-mid);border:1px solid rgba(68,108,227,0.35)')+'">'+meta.type+'</div>' : '';
+    card.innerHTML='<div class="bc-icon">'+icon+'</div><div class="bc-lbl">Battery</div><div class="bc-num">'+bid.split('-')[1]+'</div><div class="bc-stat">'+stxt+'</div><div class="bc-time">'+ttxt+'</div>'+lastChip+typBadge;
   });
   var all=grid.querySelectorAll('.bcard');
   all.forEach(function(c){ if(bIds.indexOf(c.dataset.id)===-1) c.remove(); });
@@ -787,12 +793,42 @@ function clearLog(target) {
 }
 
 function buildManage() {
-  var list=document.getElementById('blist'), h='';
-  bIds.forEach(function(bid){
-    var s=status(bid), sl=s==='idle'?'Idle':s==='heating'?'Heating':'Remove Now';
-    h+='<div class="blist-item"><div class="blist-num">'+bid+'</div><div class="blist-st">'+sl+'</div><button class="btn-rm" onclick="removeBat(\''+bid+'\')" '+(s==='idle'?'':'disabled')+'>Remove</button></div>';
+  var list = document.getElementById('blist'), h = '';
+  bIds.forEach(function(bid) {
+    var s = status(bid), sl = s==='idle'?'Idle':s==='heating'?'Heating':'Remove Now';
+    var meta = batMeta[bid] || {};
+    var typ = meta.type || '';
+    var notes = meta.notes || '';
+    var typColor = typ==='Energizer' ? '#EF4444' : typ==='Normal' ? 'var(--blue-mid)' : 'var(--muted)';
+    h +=
+      '<div class="blist-item" style="flex-direction:column;align-items:stretch;gap:10px">'+
+        '<div style="display:flex;align-items:center;gap:12px">'+
+          '<div class="blist-num">'+bid+'</div>'+
+          '<div class="blist-st">'+sl+'</div>'+
+          '<button class="btn-rm" onclick="removeBat(\''+bid+'\')" '+(s==='idle'?'':'disabled')+'>Remove</button>'+
+        '</div>'+
+        '<div style="display:flex;gap:7px">'+
+          '<button onclick="setType(\''+bid+'\',\'Normal\')" style="flex:1;padding:9px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;cursor:pointer;-webkit-tap-highlight-color:transparent;border:1.5px solid '+(typ==='Normal'?'var(--blue-mid)':'var(--bdim)')+';background:'+(typ==='Normal'?'rgba(68,108,227,0.15)':'var(--surface2)')+';color:'+(typ==='Normal'?'var(--blue-mid)':'var(--muted)')+'">Normal</button>'+
+          '<button onclick="setType(\''+bid+'\',\'Energizer\')" style="flex:1;padding:9px;border-radius:8px;font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;cursor:pointer;-webkit-tap-highlight-color:transparent;border:1.5px solid '+(typ==='Energizer'?'var(--red)':'var(--bdim)')+';background:'+(typ==='Energizer'?'var(--red-dim)':'var(--surface2)')+';color:'+(typ==='Energizer'?'var(--red)':'var(--muted)')+'">Energizer</button>'+
+        '</div>'+
+        '<input type="text" placeholder="Notes (optional)" value="'+notes.replace(/"/g,'&quot;')+'" onchange="setNotes(\''+bid+'\',this.value)" style="padding:10px 12px;border-radius:8px;background:var(--surface2);border:1.5px solid var(--bdim);color:var(--cream);font-family:\'Barlow\',sans-serif;font-size:14px;outline:none;width:100%" onfocus="this.style.borderColor=\'var(--gold)\'" onblur="this.style.borderColor=\'var(--bdim)\'">'+
+      '</div>';
   });
-  list.innerHTML=h||'<div style="color:var(--muted);text-align:center;padding:20px">No batteries</div>';
+  list.innerHTML = h || '<div style="color:var(--muted);text-align:center;padding:20px">No batteries</div>';
+}
+
+function setType(bid, type) {
+  if (!batMeta[bid]) batMeta[bid] = {};
+  batMeta[bid].type = batMeta[bid].type === type ? '' : type; // toggle off if same
+  persistMeta();
+  buildManage();
+  buildGrid();
+}
+
+function setNotes(bid, val) {
+  if (!batMeta[bid]) batMeta[bid] = {};
+  batMeta[bid].notes = val;
+  persistMeta();
 }
 
 function addBattery() {
@@ -994,8 +1030,12 @@ function buildLogDetail(bid) {
   var r = avg(entries, 'resist'), p = avg(entries, 'power');
   var evLabel = curEvent === 'overall' ? 'All Events' : curEvent.toUpperCase();
 
+  var meta = batMeta[bid] || {};
   document.getElementById('log-detail-title').textContent = 'Battery ' + bid;
-  document.getElementById('log-detail-sub').textContent = evLabel + ' · ' + entries.length + ' entr'+(entries.length!==1?'ies':'y');
+  var subParts = [evLabel, entries.length + ' entr'+(entries.length!==1?'ies':'y')];
+  if (meta.type) subParts.unshift(meta.type);
+  if (meta.notes) subParts.push(meta.notes);
+  document.getElementById('log-detail-sub').textContent = subParts.join(' · ');
 
   // Averages + usage
   document.getElementById('log-averages').innerHTML =
@@ -1047,7 +1087,6 @@ function buildLogDetail(bid) {
           '<div style="flex:1">'+
             '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
               'Heat Event'+late+
-              '<span style="background:rgba(239,171,40,0.12);color:var(--muted);border:1px solid rgba(239,171,40,0.3);border-radius:4px;font-size:10px;padding:1px 6px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">not a match</span>'+
             '</div>'+
             '<div style="font-size:12px;color:var(--muted);margin-top:3px">'+ft(h.startMs)+' → '+ft(h.endMs)+' · '+dur+'</div>'+
           '</div>'+
@@ -1190,7 +1229,7 @@ function deleteHeatEntry(bid, startMs) {
 
 // ── EXPORT / IMPORT ──
 function exportJSON() {
-  var data = { bIds:bIds, bats:bats, heatLog:heatLog, batLogs:batLogs, usageCounts:usageCounts, events:events, curEvent:curEvent };
+  var data = { bIds:bIds, bats:bats, heatLog:heatLog, batLogs:batLogs, usageCounts:usageCounts, events:events, curEvent:curEvent, batMeta:batMeta };
   var blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1210,6 +1249,7 @@ function importJSON(ev) {
       if (data.heatLog)     { heatLog = data.heatLog; persistLog(); }
       if (data.batLogs)     { batLogs = data.batLogs; persistBatLogs(); }
       if (data.usageCounts) { usageCounts = data.usageCounts; persistUsage(); }
+      if (data.batMeta)    { batMeta = data.batMeta; persistMeta(); }
       if (data.events)      { events = data.events; }
       if (data.curEvent)    { curEvent = data.curEvent; }
       persistEvents();
