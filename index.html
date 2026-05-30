@@ -369,7 +369,9 @@ header {
 </div>
 
 <div id="page-history" class="page">
-  <div class="filter-row" id="hist-tab-bar"></div>
+  <div style="padding:10px 14px 4px">
+    <select id="hist-select" onchange="setHistFilter(this.value)" style="width:100%;padding:11px 14px;border-radius:10px;background:var(--surface);border:1.5px solid var(--bdim);color:var(--cream);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;"></select>
+  </div>
   <div id="hist-content"></div>
 </div>
 
@@ -624,17 +626,18 @@ function buildGrid() {
 }
 
 function buildHistTabBar() {
-  // Only show tabs for batteries that actually have heat events
+  var sel = document.getElementById('hist-select');
+  if (!sel) return;
   var bidsWithHistory = bIds.filter(function(bid){
     return heatLog.some(function(e){ return e.bid === bid; });
   });
-  var bar = document.getElementById('hist-tab-bar');
-  if (!bar) return;
-  var h = '<button class="filter-btn'+(histFilter==='all'?' active':'')+'" onclick="setHistFilter(\'all\')">All</button>';
+  var h = '<option value="all">All Batteries ('+heatLog.length+' sessions)</option>';
   bidsWithHistory.forEach(function(bid) {
-    h += '<button class="filter-btn'+(histFilter===bid?' active':'')+'" onclick="setHistFilter(\''+bid+'\')">'+bid.split('-')[1]+'</button>';
+    var count = heatLog.filter(function(e){ return e.bid === bid; }).length;
+    h += '<option value="'+bid+'"'+(histFilter===bid?' selected':'')+'>Battery '+bid.split('-')[1]+' ('+count+' session'+(count!==1?'s':'')+')</option>';
   });
-  bar.innerHTML = h;
+  sel.innerHTML = h;
+  sel.value = histFilter;
 }
 
 function setHistFilter(val) {
