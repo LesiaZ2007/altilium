@@ -1230,7 +1230,6 @@ function saveLogEntry() {
   var p = document.getElementById('lm-power').value.trim();
   var n = document.getElementById('lm-note').value.trim();
   var heated = document.getElementById('lm-heated-toggle').classList.contains('on');
-  if (r==='' && p==='') { alert('Enter at least one value.'); return; }
   if (!batLogs[logBid]) batLogs[logBid] = [];
   var entry = { resist: r===''?null:parseFloat(r), power: p===''?null:parseFloat(p), note: n, event: curEvent, heated: heated };
   if (logEditIdx !== null) {
