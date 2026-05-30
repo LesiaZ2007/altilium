@@ -500,6 +500,26 @@ header {
   </div>
 </div>
 
+<!-- HEAT ENTRY EDIT MODAL -->
+<div class="log-modal-backdrop" id="heat-edit-backdrop">
+  <div class="log-modal">
+    <div class="mhandle"></div>
+    <div class="lm-title">Edit Heat Event</div>
+    <div class="lm-field">
+      <div class="lm-lbl">Start Time</div>
+      <input class="lm-input" type="time" id="he-start" style="width:100%">
+    </div>
+    <div class="lm-field">
+      <div class="lm-lbl">End Time</div>
+      <input class="lm-input" type="time" id="he-end" style="width:100%">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="saveHeatEntry()">Update</button>
+      <button class="btn btn-ghost" onclick="closeHeatEdit()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-backdrop">
   <div class="modal">
     <div class="mhandle"></div>
@@ -1080,17 +1100,17 @@ function buildLogDetail(bid) {
     if (item.kind === 'heat') {
       var h = item.data;
       var dur = fel(h.endMs - h.startMs);
-      var late = h.overdue ? ' <span style="color:var(--red)">overdue</span>' : '';
       entryHtml +=
         '<div class="log-entry" style="border-color:rgba(239,171,40,0.35);background:var(--gold-dim)">'+
           '<div style="font-size:18px;margin-right:2px">🔥</div>'+
           '<div style="flex:1">'+
-            '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
-              'Heat Event'+late+
-            '</div>'+
-            '<div style="font-size:12px;color:var(--muted);margin-top:3px">'+ft(h.startMs)+' → '+ft(h.endMs)+' · '+dur+'</div>'+
+            '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--gold)">Heat Event</div>'+
+            '<div style="font-size:12px;color:var(--muted);margin-top:3px" id="heat-time-'+h.startMs+'">'+ft(h.startMs)+' → '+ft(h.endMs)+' · '+dur+'</div>'+
           '</div>'+
-          '<button class="log-entry-del" title="Delete" onclick="deleteHeatEntry(\''+bid+'\','+h.startMs+')">✕</button>'+
+          '<div style="display:flex;flex-direction:row;gap:6px;align-items:center">'+
+            '<button class="log-entry-del" title="Edit" onclick="editHeatEntry(\''+bid+'\','+h.startMs+')" style="color:var(--gold)">✎</button>'+
+            '<button class="log-entry-del" title="Delete" onclick="deleteHeatEntry(\''+bid+'\','+h.startMs+')">✕</button>'+
+          '</div>'+
         '</div>';
     } else {
       var e = item.data, idx = item.idx;
@@ -1113,7 +1133,7 @@ function buildLogDetail(bid) {
               '<div class="log-entry-val">'+(e.power!=null&&e.power!==''?e.power+' <span>W</span>':'<span>—</span>')+'</div>'+
             '</div>'+
           '</div>'+
-          '<div style="display:flex;flex-direction:column;gap:6px;align-items:center">'+
+          '<div style="display:flex;flex-direction:row;gap:6px;align-items:center">'+
             '<button class="log-entry-del" title="Edit" onclick="editLogEntry(\''+bid+'\','+idx+')" style="color:var(--gold)">✎</button>'+
             '<button class="log-entry-del" title="Delete" onclick="deleteLogEntry(\''+bid+'\','+idx+')">✕</button>'+
           '</div>'+
@@ -1309,6 +1329,56 @@ function loadTileSize() {
 
 document.getElementById('log-modal-backdrop').addEventListener('click', function(e){
   if(e.target===document.getElementById('log-modal-backdrop')) closeLogEntry();
+});
+
+// ── HEAT ENTRY EDIT ──
+var heatEditBid = null, heatEditStartMs = null;
+
+function toTimeInput(ms) {
+  var d = new Date(ms);
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+function fromTimeInput(val, refMs) {
+  // Combine today's date with the time input value
+  var parts = val.split(':');
+  var d = new Date(refMs);
+  d.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
+  return d.getTime();
+}
+
+function editHeatEntry(bid, startMs) {
+  heatEditBid = bid;
+  heatEditStartMs = startMs;
+  var entry = heatLog.find(function(h){ return h.bid===bid && h.startMs===startMs; });
+  if (!entry) return;
+  document.getElementById('he-start').value = toTimeInput(entry.startMs);
+  document.getElementById('he-end').value   = toTimeInput(entry.endMs);
+  document.getElementById('heat-edit-backdrop').classList.add('open');
+}
+
+function closeHeatEdit() {
+  document.getElementById('heat-edit-backdrop').classList.remove('open');
+  heatEditBid = null; heatEditStartMs = null;
+}
+
+function saveHeatEntry() {
+  var entry = heatLog.find(function(h){ return h.bid===heatEditBid && h.startMs===heatEditStartMs; });
+  if (!entry) return;
+  var newStart = fromTimeInput(document.getElementById('he-start').value, entry.startMs);
+  var newEnd   = fromTimeInput(document.getElementById('he-end').value,   entry.endMs);
+  if (newEnd <= newStart) { alert('End time must be after start time.'); return; }
+  var bid = heatEditBid;
+  entry.startMs = newStart;
+  entry.endMs   = newEnd;
+  entry.overdue = false;
+  persistLog();
+  closeHeatEdit();
+  buildLogDetail(bid);
+}
+
+document.getElementById('heat-edit-backdrop').addEventListener('click', function(e){
+  if(e.target===document.getElementById('heat-edit-backdrop')) closeHeatEdit();
 });
 
 init(); loadTileSize(); tick(); setInterval(tick,1000);
