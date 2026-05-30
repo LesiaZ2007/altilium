@@ -180,6 +180,7 @@ header {
 .trow { display: flex; gap: 7px; flex-wrap: wrap; }
 .tbtn { flex: 1; min-width: 58px; padding: 12px 6px; border-radius: 10px; font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; border: 1.5px solid var(--bdim); background: var(--surface2); color: var(--cream); cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent; transition: all 0.12s; }
 .tbtn.sel { background: var(--gold-dim); border-color: var(--gold); color: var(--gold); }
+.tbtn.tdim { opacity: 0.35; }
 .tbtn:active { opacity: 0.7; }
 .cwrap { margin-top: 9px; display: none; }
 .cwrap.show { display: block; }
@@ -509,10 +510,11 @@ header {
       <div class="tlbl">How long ago did heating start?</div>
       <div class="trow" id="trow">
         <button class="tbtn sel" data-m="0">Just now</button>
+        <button class="tbtn" data-m="5">5 min</button>
         <button class="tbtn" data-m="15">15 min</button>
-        <button class="tbtn" data-m="30">30 min</button>
-        <button class="tbtn" data-m="45">45 min</button>
-        <button class="tbtn" data-m="custom">Other</button>
+        <button class="tbtn tdim" data-m="30">30 min</button>
+        <button class="tbtn tdim" data-m="45">45 min</button>
+        <button class="tbtn tdim" data-m="custom">Other</button>
       </div>
       <div class="cwrap" id="cwrap"><input type="number" id="cmin" min="0" max="59" placeholder="Minutes ago" inputmode="numeric"></div>
     </div>
