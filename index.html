@@ -979,12 +979,15 @@ function saveLogEntry() {
   if (!batLogs[logBid]) batLogs[logBid] = [];
   var entry = { resist: r===''?null:parseFloat(r), power: p===''?null:parseFloat(p), note: n, event: curEvent };
   if (logEditIdx !== null) {
-    // preserve original timestamp when editing
     entry.ts = batLogs[logBid][logEditIdx].ts;
     batLogs[logBid][logEditIdx] = entry;
   } else {
     entry.ts = Date.now();
     batLogs[logBid].push(entry);
+    // auto-increment match counter for new entries only
+    if (!usageCounts[logBid]) usageCounts[logBid] = {};
+    usageCounts[logBid][curEvent] = (usageCounts[logBid][curEvent] || 0) + 1;
+    persistUsage();
   }
   persistBatLogs();
   closeLogEntry();
