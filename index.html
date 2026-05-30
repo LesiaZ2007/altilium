@@ -370,7 +370,11 @@ header {
 </div>
 
 <div id="page-history" class="page">
-  <div style="padding:10px 14px 6px;position:relative" id="hist-dropdown-wrap">
+  <div class="filter-row" style="padding-bottom:2px">
+    <button class="filter-btn active" id="htype-heating" onclick="setHistType('heating')">🔥 Heating</button>
+    <button class="filter-btn" id="htype-matches" onclick="setHistType('matches')">⚡ Matches</button>
+  </div>
+  <div style="padding:6px 14px 6px;position:relative" id="hist-dropdown-wrap">
     <div id="hist-dropdown-btn" onclick="toggleHistDropdown()" style="
       display:flex;align-items:center;gap:10px;
       background:var(--surface);border:1.5px solid var(--bdim);
@@ -556,6 +560,7 @@ var bIds = [];
 var batMeta = {};      // { bid: { type: 'Normal'|'Energizer', notes: '' } }
 var curFilter = 'all';
 var histFilter = 'all'; // 'all' or a battery id
+var histType = 'heating'; // 'heating' or 'matches'
 var selId = null;
 var logBid = null;
 var logEditIdx = null;
@@ -670,41 +675,50 @@ function buildGrid() {
   all.forEach(function(c){ if(bIds.indexOf(c.dataset.id)===-1) c.remove(); });
 }
 
+function setHistType(type) {
+  histType = type;
+  document.getElementById('htype-heating').classList.toggle('active', type==='heating');
+  document.getElementById('htype-matches').classList.toggle('active', type==='matches');
+  buildHistory();
+}
+
+function histSourceEntries() {
+  // Returns flat list of entries for the dropdown counts
+  if (histType === 'heating') return heatLog;
+  // matches: flatten batLogs
+  var all = [];
+  bIds.forEach(function(bid){ (batLogs[bid]||[]).forEach(function(e){ all.push(Object.assign({bid:bid},e)); }); });
+  return all;
+}
+
 function buildHistTabBar() {
-  var bidsWithHistory = bIds.filter(function(bid){
-    return heatLog.some(function(e){ return e.bid === bid; });
+  var source = histSourceEntries();
+  var bidsWithData = bIds.filter(function(bid){
+    return source.some(function(e){ return e.bid === bid; });
   });
 
-  // Update button label
   var lbl = document.getElementById('hist-dropdown-label');
   if (lbl) {
     if (histFilter === 'all') {
-      lbl.textContent = 'All Batteries · ' + heatLog.length + ' session' + (heatLog.length!==1?'s':'');
+      lbl.textContent = 'All Batteries · ' + source.length + ' ' + (histType==='heating'?'session':'entr') + (source.length!==1?'s'+(histType==='heating'?'':'ies'):'y');
     } else {
-      var cnt = heatLog.filter(function(e){ return e.bid===histFilter; }).length;
-      lbl.textContent = 'Battery ' + histFilter.split('-')[1] + ' · ' + cnt + ' session' + (cnt!==1?'s':'');
+      var cnt = source.filter(function(e){ return e.bid===histFilter; }).length;
+      lbl.textContent = 'Battery ' + histFilter.split('-')[1] + ' · ' + cnt + ' ' + (histType==='heating'?'session':'entr') + (cnt!==1?'s'+(histType==='heating'?'':'ies'):'y');
     }
   }
 
-  // Build options list
   var list = document.getElementById('hist-dropdown-list');
   if (!list) return;
-  var opts = [{ val: 'all', label: 'All Batteries', sub: heatLog.length + ' session' + (heatLog.length!==1?'s':'') }];
-  bidsWithHistory.forEach(function(bid) {
-    var count = heatLog.filter(function(e){ return e.bid===bid; }).length;
-    opts.push({ val: bid, label: 'Battery ' + bid.split('-')[1], sub: count + ' session' + (count!==1?'s':'') });
+  var totalLbl = source.length + (histType==='heating'?' session':' entr') + (source.length!==1?'s'+(histType==='heating'?'':'ies'):'y');
+  var opts = [{ val: 'all', label: 'All Batteries', sub: totalLbl }];
+  bidsWithData.forEach(function(bid) {
+    var count = source.filter(function(e){ return e.bid===bid; }).length;
+    opts.push({ val: bid, label: 'Battery ' + bid.split('-')[1], sub: count + (histType==='heating'?' session':' entr') + (count!==1?'s'+(histType==='heating'?'':'ies'):'y') });
   });
 
   list.innerHTML = opts.map(function(o) {
     var active = histFilter === o.val;
-    return '<div onclick="pickHistFilter(\''+o.val+'\')" style="'+
-      'display:flex;align-items:center;gap:10px;'+
-      'padding:13px 16px;cursor:pointer;'+
-      'background:'+(active?'var(--gold-dim)':'transparent')+';'+
-      'border-left:3px solid '+(active?'var(--gold)':'transparent')+';'+
-      'transition:background 0.1s;'+
-      '-webkit-tap-highlight-color:transparent;'+
-      '">'+
+    return '<div onclick="pickHistFilter(\''+o.val+'\')" style="display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;background:'+(active?'var(--gold-dim)':'transparent')+';border-left:3px solid '+(active?'var(--gold)':'transparent')+';transition:background 0.1s;-webkit-tap-highlight-color:transparent;">'+
       '<span style="flex:1;font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:700;color:'+(active?'var(--gold)':'var(--cream)')+'">'+o.label+'</span>'+
       '<span style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:600;color:var(--muted)">'+o.sub+'</span>'+
       (active?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'')+
@@ -759,47 +773,78 @@ function buildHistory() {
 
 function buildHistContent() {
   var el = document.getElementById('hist-content');
-  var filtered = histFilter === 'all'
-    ? heatLog
-    : heatLog.filter(function(e){ return e.bid === histFilter; });
+  if (histType === 'heating') { buildHeatHistContent(el); }
+  else { buildMatchHistContent(el); }
+}
 
+function buildHeatHistContent(el) {
+  var filtered = histFilter === 'all' ? heatLog : heatLog.filter(function(e){ return e.bid===histFilter; });
   if (!filtered.length) {
-    el.innerHTML = '<div class="empty"><div class="big">🕐</div><p>'+(heatLog.length ? 'No sessions for this battery yet.' : 'No sessions yet.<br>Remove a battery from heat to log it here.')+'</p></div>';
-    return;
+    el.innerHTML='<div class="empty"><div class="big">🔥</div><p>'+(heatLog.length?'No heating sessions for this battery.':'No heating sessions yet.')+'</p></div>'; return;
   }
-
-  var groups = {};
-  filtered.slice().reverse().forEach(function(e) {
-    var d = fd(e.endMs);
-    if (!groups[d]) groups[d] = [];
-    groups[d].push(e);
-  });
-
-  var clearTarget = histFilter === 'all' ? 'all' : histFilter;
-  var clearLabel = histFilter === 'all' ? 'Clear All' : 'Clear';
-  var h = '<div class="htoolbar"><span class="hcount">'+filtered.length+' session'+(filtered.length!==1?'s':'')+'</span><button class="btn-sm" onclick="clearLog(\''+clearTarget+'\')">'+clearLabel+'</button></div>';
-
+  var groups={};
+  filtered.slice().reverse().forEach(function(e){ var d=fd(e.endMs); if(!groups[d])groups[d]=[]; groups[d].push(e); });
+  var clearTarget = histFilter==='all'?'all':histFilter;
+  var h='<div class="htoolbar"><span class="hcount">'+filtered.length+' session'+(filtered.length!==1?'s':'')+'</span><button class="btn-sm" onclick="clearLog(\''+clearTarget+'\')">Clear</button></div>';
   Object.keys(groups).forEach(function(date) {
-    h += '<div class="hdatelbl">'+date+'</div>';
+    h+='<div class="hdatelbl">'+date+'</div>';
     groups[date].forEach(function(e) {
-      // When viewing all batteries show the badge; when on a single battery, show a shorter label
-      var badge = histFilter === 'all'
-        ? '<div class="hbadge">'+e.bid.split('-')[1]+'</div>'
-        : '<div class="hbadge" style="font-size:13px;padding:4px 8px">'+ft(e.startMs)+'</div>';
-      h += '<div class="hentry">'+
-        badge+
-        '<div class="hmain">'+
-          '<div class="htimes">'+ft(e.startMs)+' &rarr; '+ft(e.endMs)+'</div>'+
-          '<div class="hmeta"><span class="hdur">'+fel(e.endMs-e.startMs)+'</span></div>'+
-        '</div>'+
-        '<div style="display:flex;flex-direction:row;gap:6px;align-items:center">'+
-          '<button class="log-entry-del" title="Edit" onclick="editHistEntry(\''+e.bid+'\','+e.startMs+')" style="color:var(--gold)">✎</button>'+
-          '<button class="log-entry-del" title="Delete" onclick="deleteHistEntry(\''+e.bid+'\','+e.startMs+')">✕</button>'+
-        '</div>'+
-      '</div>';
+      var badge = histFilter==='all' ? '<div class="hbadge">'+e.bid.split('-')[1]+'</div>' : '<div class="hbadge" style="font-size:13px;padding:4px 8px">'+ft(e.startMs)+'</div>';
+      h+='<div class="hentry">'+badge+
+        '<div class="hmain"><div class="htimes">'+ft(e.startMs)+' &rarr; '+ft(e.endMs)+'</div>'+
+        '<div class="hmeta"><span class="hdur">'+fel(e.endMs-e.startMs)+'</span></div></div>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+          '<button class="log-entry-del" style="color:var(--gold)" onclick="editHistEntry(\''+e.bid+'\','+e.startMs+')">✎</button>'+
+          '<button class="log-entry-del" onclick="deleteHistEntry(\''+e.bid+'\','+e.startMs+')">✕</button>'+
+        '</div></div>';
     });
   });
-  el.innerHTML = h;
+  el.innerHTML=h;
+}
+
+function buildMatchHistContent(el) {
+  // Flatten all match log entries with bid attached
+  var all = [];
+  bIds.forEach(function(bid){ (batLogs[bid]||[]).forEach(function(e,i){ all.push({bid:bid,idx:i,data:e}); }); });
+  var filtered = histFilter==='all' ? all : all.filter(function(e){ return e.bid===histFilter; });
+  filtered.sort(function(a,b){ return b.data.ts - a.data.ts; });
+
+  if (!filtered.length) {
+    el.innerHTML='<div class="empty"><div class="big">⚡</div><p>'+(all.length?'No match entries for this battery.':'No match entries yet.<br>Use "Use in Match" or log from the Log tab.')+'</p></div>'; return;
+  }
+  var groups={};
+  filtered.forEach(function(item){ var d=fd(item.data.ts); if(!groups[d])groups[d]=[]; groups[d].push(item); });
+  var h='<div class="htoolbar"><span class="hcount">'+filtered.length+' entr'+(filtered.length!==1?'ies':'y')+'</span></div>';
+  Object.keys(groups).forEach(function(date) {
+    h+='<div class="hdatelbl">'+date+'</div>';
+    groups[date].forEach(function(item) {
+      var e=item.data, bid=item.bid, idx=item.idx;
+      var badge = histFilter==='all' ? '<div class="hbadge">'+bid.split('-')[1]+'</div>' : '<div class="hbadge" style="font-size:13px;padding:4px 8px">'+ft(e.ts)+'</div>';
+      var heatedBadge = e.heated ? '<span class="htag" style="background:var(--gold-dim);color:var(--gold);border:1px solid rgba(239,171,40,0.5)">🔥 Heated</span>' : '';
+      var evBadge = (e.event&&e.event!=='overall') ? '<span class="htag" style="background:var(--surface2);color:var(--muted);border:1px solid var(--bdim)">'+e.event+'</span>' : '';
+      h+='<div class="hentry">'+badge+
+        '<div class="hmain">'+
+          '<div class="htimes">'+(e.note?'<strong>'+e.note+'</strong> · ':'')+ft(e.ts)+'</div>'+
+          '<div class="hmeta">'+
+            (e.resist!=null&&e.resist!==''?'<span class="hdur">'+e.resist+' m&#8486;</span>':'')+
+            (e.power!=null&&e.power!==''?'<span class="hdur">'+e.power+' W</span>':'')+
+            heatedBadge+evBadge+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+          '<button class="log-entry-del" style="color:var(--gold)" onclick="editLogEntry(\''+bid+'\','+idx+')">✎</button>'+
+          '<button class="log-entry-del" onclick="deleteMatchHistEntry(\''+bid+'\','+idx+')">✕</button>'+
+        '</div></div>';
+    });
+  });
+  el.innerHTML=h;
+}
+
+function deleteMatchHistEntry(bid, idx) {
+  if (!confirm('Delete this match entry?')) return;
+  batLogs[bid].splice(idx,1);
+  persistBatLogs();
+  buildHistory();
 }
 
 function clearLog(target) {
@@ -1122,7 +1167,7 @@ function buildLogDetail(bid) {
         '<div class="log-entry" style="border-color:rgba(239,171,40,0.35);background:var(--gold-dim)">'+
           '<div style="font-size:18px;margin-right:2px">🔥</div>'+
           '<div style="flex:1">'+
-            '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--gold)">Heat Event</div>'+
+            '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--gold)">Heated</div>'+
             '<div style="font-size:12px;color:var(--muted);margin-top:3px" id="heat-time-'+h.startMs+'">'+ft(h.startMs)+' → '+ft(h.endMs)+' · '+dur+'</div>'+
           '</div>'+
           '<div style="display:flex;flex-direction:row;gap:6px;align-items:center">'+
