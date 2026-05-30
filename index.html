@@ -898,20 +898,37 @@ function openModal(bid) {
   if(s==='idle'){
     document.getElementById('msub').textContent='Not currently heating.';
     mtime.style.display='block'; resetTime();
-    mact.innerHTML='<button class="btn btn-gold" onclick="startHeat()">🔥 Start Heating</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>';
+    mact.innerHTML='<button class="btn btn-gold" onclick="startHeat()">🔥 Start Heating</button><button class="btn btn-ghost" style="color:var(--green);border-color:var(--green)" onclick="useInMatch()">⚡ Use in Match</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>';
   } else if(s==='heating'){
     document.getElementById('msub').textContent='Currently heating.';
     info.innerHTML=irow('🕐','Started at',ft(b.startMs))+irow('⏱️','Elapsed','<span id="mel">'+fel(Date.now()-b.startMs)+'</span>')+irow('✅','Remove at',ft(b.startMs+HEAT_MS))+irow('⏳','Remaining','<span id="mrem">'+ftc(HEAT_MS-(Date.now()-b.startMs))+'</span>');
-    mact.innerHTML='<button class="btn btn-red" onclick="markDone()">✅ Mark as Removed</button><button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+    mact.innerHTML='<button class="btn btn-red" onclick="markDone()">✅ Mark as Removed</button><button class="btn btn-ghost" style="color:var(--green);border-color:var(--green)" onclick="useInMatch()">⚡ Use in Match</button><button class="btn btn-ghost" onclick="closeModal()">Close</button>';
   } else {
     document.getElementById('msub').textContent='Should have been removed already!';
     info.innerHTML=irow('🕐','Started at',ft(b.startMs))+irow('⚠️','Should remove at',ft(b.startMs+HEAT_MS))+irow('⏰','Overdue by','<span id="mov" style="color:var(--red)">'+fel((Date.now()-b.startMs)-HEAT_MS)+'</span>');
-    mact.innerHTML='<button class="btn btn-red" onclick="markDone()">✅ Mark as Removed</button><button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+    mact.innerHTML='<button class="btn btn-red" onclick="markDone()">✅ Mark as Removed</button><button class="btn btn-ghost" style="color:var(--green);border-color:var(--green)" onclick="useInMatch()">⚡ Use in Match</button><button class="btn btn-ghost" onclick="closeModal()">Close</button>';
   }
   document.getElementById('modal-backdrop').classList.add('open');
 }
 
 function closeModal() { document.getElementById('modal-backdrop').classList.remove('open'); selId=null; }
+
+function useInMatch() {
+  var bid = selId;
+  closeModal();
+  // Open the log entry modal for this battery
+  logBid = bid;
+  logEditIdx = null;
+  document.getElementById('lm-title').textContent = 'Log Match — ' + bid;
+  document.getElementById('lm-resist').value = '';
+  document.getElementById('lm-power').value = '';
+  document.getElementById('lm-note').value = '';
+  document.getElementById('lm-save-btn').textContent = 'Save Entry';
+  var lh = lastHeat(bid);
+  setHeatedToggle(lh && (Date.now() - lh.endMs) < 4*60*60*1000);
+  document.getElementById('log-modal-backdrop').classList.add('open');
+  setTimeout(function(){ document.getElementById('lm-note').focus(); }, 80);
+}
 
 function resetTime() {
   minsAgo=0;
