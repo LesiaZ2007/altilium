@@ -371,8 +371,8 @@ header {
 
 <div id="page-history" class="page">
   <div class="filter-row" style="padding-bottom:2px">
-    <button class="filter-btn active" id="htype-heating" onclick="setHistType('heating')">🔥 Heating</button>
-    <button class="filter-btn" id="htype-matches" onclick="setHistType('matches')">⚡ Matches</button>
+    <button class="filter-btn active" id="htype-matches" onclick="setHistType('matches')">⚡ Match</button>
+    <button class="filter-btn" id="htype-heating" onclick="setHistType('heating')">🔥 Heating</button>
   </div>
   <div style="padding:6px 14px 6px;position:relative" id="hist-dropdown-wrap">
     <div id="hist-dropdown-btn" onclick="toggleHistDropdown()" style="
@@ -560,7 +560,7 @@ var bIds = [];
 var batMeta = {};      // { bid: { type: 'Normal'|'Energizer', notes: '' } }
 var curFilter = 'all';
 var histFilter = 'all'; // 'all' or a battery id
-var histType = 'heating'; // 'heating' or 'matches'
+var histType = 'matches'; // 'heating' or 'matches'
 var selId = null;
 var logBid = null;
 var logEditIdx = null;
