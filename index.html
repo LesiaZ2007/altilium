@@ -786,14 +786,15 @@ function buildHistContent() {
       var badge = histFilter === 'all'
         ? '<div class="hbadge">'+e.bid.split('-')[1]+'</div>'
         : '<div class="hbadge" style="font-size:13px;padding:4px 8px">'+ft(e.startMs)+'</div>';
-      h += '<div class="hentry'+(e.overdue?' late':'')+'">'+
+      h += '<div class="hentry">'+
         badge+
         '<div class="hmain">'+
           '<div class="htimes">'+ft(e.startMs)+' &rarr; '+ft(e.endMs)+'</div>'+
-          '<div class="hmeta">'+
-            '<span class="hdur">'+fel(e.endMs-e.startMs)+'</span>'+
-            (e.overdue?'<span class="htag late">Overdue</span>':'<span class="htag ok">On Time</span>')+
-          '</div>'+
+          '<div class="hmeta"><span class="hdur">'+fel(e.endMs-e.startMs)+'</span></div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:row;gap:6px;align-items:center">'+
+          '<button class="log-entry-del" title="Edit" onclick="editHistEntry(\''+e.bid+'\','+e.startMs+')" style="color:var(--gold)">✎</button>'+
+          '<button class="log-entry-del" title="Delete" onclick="deleteHistEntry(\''+e.bid+'\','+e.startMs+')">✕</button>'+
         '</div>'+
       '</div>';
     });
@@ -1332,7 +1333,7 @@ document.getElementById('log-modal-backdrop').addEventListener('click', function
 });
 
 // ── HEAT ENTRY EDIT ──
-var heatEditBid = null, heatEditStartMs = null;
+var heatEditBid = null, heatEditStartMs = null, heatEditSource = 'log';
 
 function toTimeInput(ms) {
   var d = new Date(ms);
@@ -1347,9 +1348,29 @@ function fromTimeInput(val, refMs) {
   return d.getTime();
 }
 
+function editHistEntry(bid, startMs) {
+  // reuse the heat edit modal — just set a flag to rebuild history on save
+  heatEditBid = bid;
+  heatEditStartMs = startMs;
+  heatEditSource = 'history';
+  var entry = heatLog.find(function(h){ return h.bid===bid && h.startMs===startMs; });
+  if (!entry) return;
+  document.getElementById('he-start').value = toTimeInput(entry.startMs);
+  document.getElementById('he-end').value   = toTimeInput(entry.endMs);
+  document.getElementById('heat-edit-backdrop').classList.add('open');
+}
+
+function deleteHistEntry(bid, startMs) {
+  if (!confirm('Delete this heating session?')) return;
+  heatLog = heatLog.filter(function(h){ return !(h.bid===bid && h.startMs===startMs); });
+  persistLog();
+  buildHistory();
+}
+
 function editHeatEntry(bid, startMs) {
   heatEditBid = bid;
   heatEditStartMs = startMs;
+  heatEditSource = 'log';
   var entry = heatLog.find(function(h){ return h.bid===bid && h.startMs===startMs; });
   if (!entry) return;
   document.getElementById('he-start').value = toTimeInput(entry.startMs);
@@ -1374,7 +1395,7 @@ function saveHeatEntry() {
   entry.overdue = false;
   persistLog();
   closeHeatEdit();
-  buildLogDetail(bid);
+  if (heatEditSource === 'history') buildHistory(); else buildLogDetail(bid);
 }
 
 document.getElementById('heat-edit-backdrop').addEventListener('click', function(e){
