@@ -898,15 +898,16 @@ function buildLogDetail(bid) {
     if (item.kind === 'heat') {
       var h = item.data;
       var dur = fel(h.endMs - h.startMs);
-      var late = h.overdue ? ' <span style="color:var(--red);font-size:11px">overdue</span>' : '';
+      var late = h.overdue ? ' <span style="color:var(--red)">overdue</span>' : '';
       entryHtml +=
         '<div class="log-entry" style="border-color:rgba(239,171,40,0.35);background:var(--gold-dim)">'+
           '<div style="font-size:18px;margin-right:2px">🔥</div>'+
           '<div style="flex:1">'+
-            '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--gold)">'+
-              'Heated · '+ft(h.startMs)+' → '+ft(h.endMs)+late+
+            '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--gold);display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
+              'Heat Event'+late+
+              '<span style="background:rgba(239,171,40,0.12);color:var(--muted);border:1px solid rgba(239,171,40,0.3);border-radius:4px;font-size:10px;padding:1px 6px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">not a match</span>'+
             '</div>'+
-            '<div style="font-size:12px;color:var(--muted);margin-top:2px">Duration: '+dur+'</div>'+
+            '<div style="font-size:12px;color:var(--muted);margin-top:3px">'+ft(h.startMs)+' → '+ft(h.endMs)+' · '+dur+'</div>'+
           '</div>'+
         '</div>';
     } else {
