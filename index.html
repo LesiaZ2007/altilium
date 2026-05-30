@@ -369,6 +369,7 @@ header {
 </div>
 
 <div id="page-history" class="page">
+  <div class="filter-row" id="hist-tab-bar"></div>
   <div id="hist-content"></div>
 </div>
 
@@ -512,6 +513,7 @@ var events = [];       // ['overall','mabil',...]
 var curEvent = 'overall';
 var bIds = [];
 var curFilter = 'all';
+var histFilter = 'all'; // 'all' or a battery id
 var selId = null;
 var logBid = null;
 var logEditIdx = null;
@@ -621,27 +623,84 @@ function buildGrid() {
   all.forEach(function(c){ if(bIds.indexOf(c.dataset.id)===-1) c.remove(); });
 }
 
-function buildHistory() {
-  var el=document.getElementById('hist-content');
-  if(!heatLog.length){
-    el.innerHTML='<div class="empty"><div class="big">🕐</div><p>No sessions yet.<br>Remove a battery from heat to log it here.</p></div>';
-    return;
-  }
-  var groups={};
-  heatLog.slice().reverse().forEach(function(e){var d=fd(e.endMs);if(!groups[d])groups[d]=[];groups[d].push(e);});
-  var h='<div class="htoolbar"><span class="hcount">'+heatLog.length+' session'+(heatLog.length!==1?'s':'')+'</span><button class="btn-sm" onclick="clearLog()">Clear All</button></div>';
-  Object.keys(groups).forEach(function(date){
-    h+='<div class="hdatelbl">'+date+'</div>';
-    groups[date].forEach(function(e){
-      h+='<div class="hentry'+(e.overdue?' late':'')+'"><div class="hbadge">'+e.bid.split('-')[1]+'</div><div class="hmain"><div class="htimes">'+ft(e.startMs)+' &rarr; '+ft(e.endMs)+'</div><div class="hmeta"><span class="hdur">'+fel(e.endMs-e.startMs)+'</span>'+(e.overdue?'<span class="htag late">Overdue</span>':'<span class="htag ok">On Time</span>')+'</div></div></div>';
-    });
+function buildHistTabBar() {
+  // Only show tabs for batteries that actually have heat events
+  var bidsWithHistory = bIds.filter(function(bid){
+    return heatLog.some(function(e){ return e.bid === bid; });
   });
-  el.innerHTML=h;
+  var bar = document.getElementById('hist-tab-bar');
+  if (!bar) return;
+  var h = '<button class="filter-btn'+(histFilter==='all'?' active':'')+'" onclick="setHistFilter(\'all\')">All</button>';
+  bidsWithHistory.forEach(function(bid) {
+    h += '<button class="filter-btn'+(histFilter===bid?' active':'')+'" onclick="setHistFilter(\''+bid+'\')">'+bid.split('-')[1]+'</button>';
+  });
+  bar.innerHTML = h;
 }
 
-function clearLog() {
-  if(!confirm('Clear all heating history?')) return;
-  heatLog=[]; persistLog(); buildHistory();
+function setHistFilter(val) {
+  histFilter = val;
+  buildHistTabBar();
+  buildHistContent();
+}
+
+function buildHistory() {
+  buildHistTabBar();
+  buildHistContent();
+}
+
+function buildHistContent() {
+  var el = document.getElementById('hist-content');
+  var filtered = histFilter === 'all'
+    ? heatLog
+    : heatLog.filter(function(e){ return e.bid === histFilter; });
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="big">🕐</div><p>'+(heatLog.length ? 'No sessions for this battery yet.' : 'No sessions yet.<br>Remove a battery from heat to log it here.')+'</p></div>';
+    return;
+  }
+
+  var groups = {};
+  filtered.slice().reverse().forEach(function(e) {
+    var d = fd(e.endMs);
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(e);
+  });
+
+  var clearTarget = histFilter === 'all' ? 'all' : histFilter;
+  var clearLabel = histFilter === 'all' ? 'Clear All' : 'Clear';
+  var h = '<div class="htoolbar"><span class="hcount">'+filtered.length+' session'+(filtered.length!==1?'s':'')+'</span><button class="btn-sm" onclick="clearLog(\''+clearTarget+'\')">'+clearLabel+'</button></div>';
+
+  Object.keys(groups).forEach(function(date) {
+    h += '<div class="hdatelbl">'+date+'</div>';
+    groups[date].forEach(function(e) {
+      // When viewing all batteries show the badge; when on a single battery, show a shorter label
+      var badge = histFilter === 'all'
+        ? '<div class="hbadge">'+e.bid.split('-')[1]+'</div>'
+        : '<div class="hbadge" style="font-size:13px;padding:4px 8px">'+ft(e.startMs)+'</div>';
+      h += '<div class="hentry'+(e.overdue?' late':'')+'">'+
+        badge+
+        '<div class="hmain">'+
+          '<div class="htimes">'+ft(e.startMs)+' &rarr; '+ft(e.endMs)+'</div>'+
+          '<div class="hmeta">'+
+            '<span class="hdur">'+fel(e.endMs-e.startMs)+'</span>'+
+            (e.overdue?'<span class="htag late">Overdue</span>':'<span class="htag ok">On Time</span>')+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    });
+  });
+  el.innerHTML = h;
+}
+
+function clearLog(target) {
+  if (!confirm('Clear heating history'+(target==='all'?'':' for battery '+target)+'?')) return;
+  if (target === 'all') {
+    heatLog = [];
+  } else {
+    heatLog = heatLog.filter(function(e){ return e.bid !== target; });
+  }
+  persistLog();
+  buildHistory();
 }
 
 function buildManage() {
