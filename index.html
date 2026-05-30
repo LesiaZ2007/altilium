@@ -124,7 +124,11 @@ header {
 .bcard.overdue .bc-stat { color: var(--red); }
 .bc-time { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cream); }
 .bcard.idle .bc-time { color: var(--muted); font-weight: 400; font-size: 13px; }
-.bc-last { margin-top: 7px; display: inline-block; font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); background: var(--surface2); border: 1px solid var(--bdim); border-radius: 5px; padding: 2px 7px; }
+.bc-last { margin-top: 7px; display: inline-block; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px; padding: 3px 8px; }
+.bc-last.cold  { color: var(--muted); background: var(--surface2); border: 1px solid var(--bdim); }
+.bc-last.warm1 { color: #EFAB28; background: rgba(239,171,40,0.25); border: 1px solid rgba(239,171,40,0.6); }
+.bc-last.warm2 { color: #e8a020; background: rgba(239,171,40,0.15); border: 1px solid rgba(239,171,40,0.4); }
+.bc-last.warm3 { color: #c98a18; background: rgba(239,171,40,0.10); border: 1px solid rgba(239,171,40,0.25); }
 .page { display: none; }
 .page.active { display: block; }
 .tab-bar {
@@ -452,7 +456,7 @@ header {
       <input class="lm-input" type="text" id="lm-note" placeholder="e.g. Quals 3" style="width:100%">
     </div>
     <div class="btn-row">
-      <button class="btn btn-gold" onclick="saveLogEntry()">Save Entry</button>
+      <button class="btn btn-gold" id="lm-save-btn" onclick="saveLogEntry()">Save Entry</button>
       <button class="btn btn-ghost" onclick="closeLogEntry()">Cancel</button>
     </div>
   </div>
@@ -493,6 +497,7 @@ var bIds = [];
 var curFilter = 'all';
 var selId = null;
 var logBid = null;
+var logEditIdx = null;
 var minsAgo = 0;
 var alerted = {};
 
@@ -586,8 +591,14 @@ function buildGrid() {
     var icon=s==='idle'?'🔋':s==='heating'?'🔥':'⚠️';
     var stxt=s==='idle'?'Idle':s==='heating'?'Heating':'REMOVE NOW';
     var ttxt=s==='idle'?'Tap to heat':s==='heating'?ftc(HEAT_MS-(Date.now()-b.startMs))+' left':fel((Date.now()-b.startMs)-HEAT_MS)+' overdue';
-    var lh=lastHeat(bid);
-    card.innerHTML='<div class="bc-icon">'+icon+'</div><div class="bc-lbl">Battery</div><div class="bc-num">'+bid.split('-')[1]+'</div><div class="bc-stat">'+stxt+'</div><div class="bc-time">'+ttxt+'</div>'+(lh?'<div class="bc-last">Last: '+ft(lh.endMs)+'</div>':'');
+    var lh=lastHeat(bid), lastChip='';
+    if (lh) {
+      var age = Date.now() - lh.endMs;
+      var warmClass = age < 30*60000 ? 'warm1' : age < 60*60000 ? 'warm2' : age < 120*60000 ? 'warm3' : 'cold';
+      var lastLbl = age < 120*60000 ? '🔥 ' + fel(age) + ' ago' : 'Last: '+ft(lh.endMs);
+      lastChip = '<div class="bc-last '+warmClass+'">'+lastLbl+'</div>';
+    }
+    card.innerHTML='<div class="bc-icon">'+icon+'</div><div class="bc-lbl">Battery</div><div class="bc-num">'+bid.split('-')[1]+'</div><div class="bc-stat">'+stxt+'</div><div class="bc-time">'+ttxt+'</div>'+lastChip;
   });
   var all=grid.querySelectorAll('.bcard');
   all.forEach(function(c){ if(bIds.indexOf(c.dataset.id)===-1) c.remove(); });
@@ -841,28 +852,72 @@ function buildLogDetail(bid) {
       '<div class="avg-card-sub">'+evLabel+'</div>'+
     '</div>';
 
-  // Entry list
+  // Heating events for this battery (sorted ascending by end time)
+  var batHeatEvents = heatLog.filter(function(h){ return h.bid === bid; })
+                              .sort(function(a,b){ return a.endMs - b.endMs; });
+
+  // Entry list — all entries for this battery regardless of event filter,
+  // sorted newest first, with a heated badge if a heat event ended within
+  // the 4 hours before this entry's timestamp.
+  var allEntries = (batLogs[bid] || []).slice();
   var el = document.getElementById('log-entry-list');
-  if (!entries.length) {
+  if (!allEntries.length && !batHeatEvents.length) {
     el.innerHTML = '<div class="empty" style="padding:30px 0"><p>No entries yet.<br>Tap + Add Entry to log data.</p></div>';
     return;
   }
+
+  // Build combined timeline of measurements + heat events, newest first
+  var timeline = [];
+  allEntries.forEach(function(e, idx) { timeline.push({kind:'entry', data:e, idx:idx}); });
+  batHeatEvents.forEach(function(h) { timeline.push({kind:'heat', data:h}); });
+  timeline.sort(function(a,b){
+    var ta = a.kind==='entry' ? a.data.ts : a.data.endMs;
+    var tb = b.kind==='entry' ? b.data.ts : b.data.endMs;
+    return tb - ta; // newest first
+  });
+
   var entryHtml = '';
-  entries.slice().reverse().forEach(function(e, revIdx) {
-    var realIdx = entries.length - 1 - revIdx;
-    var d = new Date(e.ts);
-    var ts = d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    entryHtml +=
-      '<div class="log-entry">'+
-        '<div style="flex:1">'+
-          '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--muted)">'+ts+(e.note?' · '+e.note:'')+(e.event&&e.event!=='overall'?' ['+e.event+']':'')+'</div>'+
-          '<div style="display:flex;gap:16px;margin-top:4px">'+
-            '<div class="log-entry-val">'+(e.resist!=null&&e.resist!==''?e.resist+' <span>m&#8486;</span>':'<span>—</span>')+'</div>'+
-            '<div class="log-entry-val">'+(e.power!=null&&e.power!==''?e.power+' <span>W</span>':'<span>—</span>')+'</div>'+
+  timeline.forEach(function(item) {
+    if (item.kind === 'heat') {
+      var h = item.data;
+      var dur = fel(h.endMs - h.startMs);
+      var late = h.overdue ? ' <span style="color:var(--red);font-size:11px">overdue</span>' : '';
+      entryHtml +=
+        '<div class="log-entry" style="border-color:rgba(239,171,40,0.35);background:var(--gold-dim)">'+
+          '<div style="font-size:18px;margin-right:2px">🔥</div>'+
+          '<div style="flex:1">'+
+            '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--gold)">'+
+              'Heated · '+ft(h.startMs)+' → '+ft(h.endMs)+late+
+            '</div>'+
+            '<div style="font-size:12px;color:var(--muted);margin-top:2px">Duration: '+dur+'</div>'+
           '</div>'+
-        '</div>'+
-        '<button class="log-entry-del" onclick="deleteLogEntry(\''+bid+'\','+realIdx+')">✕</button>'+
-      '</div>';
+        '</div>';
+    } else {
+      var e = item.data, idx = item.idx;
+      var d = new Date(e.ts);
+      var ts = d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      // Was this battery heated in the 4 hours before this entry?
+      var WINDOW = 4*60*60*1000;
+      var wasHeated = batHeatEvents.some(function(h){ return h.endMs <= e.ts && (e.ts - h.endMs) <= WINDOW; });
+      var heatedBadge = wasHeated ? '<span style="background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold);border-radius:4px;font-family:\'Barlow Condensed\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:1px 6px;margin-left:6px">Heated</span>' : '';
+      var evBadge = (e.event && e.event !== 'overall') ? '<span style="background:var(--surface2);color:var(--muted);border:1px solid var(--bdim);border-radius:4px;font-family:\'Barlow Condensed\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:1px 6px;margin-left:4px">'+e.event+'</span>' : '';
+      entryHtml +=
+        '<div class="log-entry">'+
+          '<div style="flex:1">'+
+            '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:var(--muted);display:flex;align-items:center;flex-wrap:wrap;gap:2px">'+
+              ts+(e.note?' · <span style="color:var(--cream)">'+e.note+'</span>':'')+heatedBadge+evBadge+
+            '</div>'+
+            '<div style="display:flex;gap:16px;margin-top:5px">'+
+              '<div class="log-entry-val">'+(e.resist!=null&&e.resist!==''?e.resist+' <span>m&#8486;</span>':'<span>—</span>')+'</div>'+
+              '<div class="log-entry-val">'+(e.power!=null&&e.power!==''?e.power+' <span>W</span>':'<span>—</span>')+'</div>'+
+            '</div>'+
+          '</div>'+
+          '<div style="display:flex;flex-direction:column;gap:6px;align-items:center">'+
+            '<button class="log-entry-del" title="Edit" onclick="editLogEntry(\''+bid+'\','+idx+')" style="color:var(--gold)">✎</button>'+
+            '<button class="log-entry-del" title="Delete" onclick="deleteLogEntry(\''+bid+'\','+idx+')">✕</button>'+
+          '</div>'+
+        '</div>';
+    }
   });
   el.innerHTML = entryHtml;
 }
@@ -887,15 +942,33 @@ function changeUsage(bid, delta) {
 }
 
 function openLogEntry() {
-  document.getElementById('lm-title').textContent = 'Add Entry — ' + (logBid ? logBid : '');
+  logEditIdx = null;
+  document.getElementById('lm-title').textContent = 'Add Entry — ' + (logBid||'');
   document.getElementById('lm-resist').value = '';
   document.getElementById('lm-power').value = '';
   document.getElementById('lm-note').value = '';
+  document.getElementById('lm-save-btn').textContent = 'Save Entry';
   document.getElementById('log-modal-backdrop').classList.add('open');
-  document.getElementById('lm-resist').focus();
+  setTimeout(function(){ document.getElementById('lm-resist').focus(); }, 80);
 }
 
-function closeLogEntry() { document.getElementById('log-modal-backdrop').classList.remove('open'); }
+function editLogEntry(bid, idx) {
+  if (!batLogs[bid] || !batLogs[bid][idx]) return;
+  logEditIdx = idx;
+  var e = batLogs[bid][idx];
+  document.getElementById('lm-title').textContent = 'Edit Entry — ' + bid;
+  document.getElementById('lm-resist').value = e.resist != null ? e.resist : '';
+  document.getElementById('lm-power').value  = e.power  != null ? e.power  : '';
+  document.getElementById('lm-note').value   = e.note   || '';
+  document.getElementById('lm-save-btn').textContent = 'Update Entry';
+  document.getElementById('log-modal-backdrop').classList.add('open');
+  setTimeout(function(){ document.getElementById('lm-resist').focus(); }, 80);
+}
+
+function closeLogEntry() {
+  document.getElementById('log-modal-backdrop').classList.remove('open');
+  logEditIdx = null;
+}
 
 function saveLogEntry() {
   if (!logBid) return;
@@ -904,7 +977,15 @@ function saveLogEntry() {
   var n = document.getElementById('lm-note').value.trim();
   if (r==='' && p==='') { alert('Enter at least one value.'); return; }
   if (!batLogs[logBid]) batLogs[logBid] = [];
-  batLogs[logBid].push({ ts: Date.now(), resist: r===''?null:parseFloat(r), power: p===''?null:parseFloat(p), note: n, event: curEvent });
+  var entry = { resist: r===''?null:parseFloat(r), power: p===''?null:parseFloat(p), note: n, event: curEvent };
+  if (logEditIdx !== null) {
+    // preserve original timestamp when editing
+    entry.ts = batLogs[logBid][logEditIdx].ts;
+    batLogs[logBid][logEditIdx] = entry;
+  } else {
+    entry.ts = Date.now();
+    batLogs[logBid].push(entry);
+  }
   persistBatLogs();
   closeLogEntry();
   buildLogDetail(logBid);
