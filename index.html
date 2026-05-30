@@ -909,6 +909,7 @@ function buildLogDetail(bid) {
             '</div>'+
             '<div style="font-size:12px;color:var(--muted);margin-top:3px">'+ft(h.startMs)+' → '+ft(h.endMs)+' · '+dur+'</div>'+
           '</div>'+
+          '<button class="log-entry-del" title="Delete" onclick="deleteHeatEntry(\''+bid+'\','+h.startMs+')">✕</button>'+
         '</div>';
     } else {
       var e = item.data, idx = item.idx;
@@ -1036,6 +1037,13 @@ function deleteLogEntry(bid, idx) {
   persistBatLogs();
   buildLogDetail(bid);
   buildLog();
+}
+
+function deleteHeatEntry(bid, startMs) {
+  if (!confirm('Delete this heat event?')) return;
+  heatLog = heatLog.filter(function(h){ return !(h.bid === bid && h.startMs === startMs); });
+  persistLog();
+  buildLogDetail(bid);
 }
 
 // ── EXPORT / IMPORT ──
